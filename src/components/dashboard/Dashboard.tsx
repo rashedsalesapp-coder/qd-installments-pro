@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Users, Receipt, DollarSign, AlertTriangle, TrendingUp, RefreshCw } from "lucide-react";
+import AIInsights from "./AIInsights";
 import StatsCard from "./StatsCard";
 import { DashboardStats } from "@/lib/types";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from 'recharts';
@@ -117,6 +118,11 @@ const Dashboard = () => {
               </div>
             </div>
         </div>
+      </div>
+
+      <div className="mt-6">
+        <h3 className="text-lg font-semibold text-foreground mb-4">تحليلات الذكاء الاصطناعي</h3>
+        <AIInsights />
       </div>
     </div>
   );

@@ -1,175 +1,248 @@
 import { useState } from 'react';
-import Papa from 'papaparse';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/components/ui/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { supabase } from '@/lib/supabaseClient';
-
-// --- Supabase API Function ---
-const importCustomers = async (customers: any[]) => {
-    const { error } = await supabase.from('customers').insert(customers);
-    if (error) throw new Error(error.message);
-    return { message: `${customers.length} customers imported successfully.` };
-};
-// --- End Supabase API Function ---
-
-const customerFields = [
-  { value: 'fullName', label: 'الاسم الكامل' },
-  { value: 'mobileNumber', label: 'رقم الهاتف' },
-  { value: 'civilId', label: 'الرقم المدني' },
-];
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { readExcelFile, importData, TABLE_CONFIGS, ImportConfig } from '@/lib/importHelpers';
 
 const DataImportPage = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [file, setFile] = useState<File | null>(null);
-  const [data, setData] = useState<any[]>([]);
-  const [headers, setHeaders] = useState<string[]>([]);
+  const [sheets, setSheets] = useState<string[]>([]);
+  const [preview, setPreview] = useState<{ [sheet: string]: any[] }>({});
+  const [selectedSheet, setSelectedSheet] = useState<string>('');
+  const [selectedTable, setSelectedTable] = useState<keyof typeof TABLE_CONFIGS>('customers');
   const [mapping, setMapping] = useState<{ [key: string]: string }>({});
 
   const mutation = useMutation({
-    mutationFn: importCustomers,
-    onSuccess: (data) => {
+    mutationFn: async (config: ImportConfig) => {
+      if (!file) throw new Error('No file selected');
+      return importData(file, config);
+    },
+    onSuccess: (data: any) => {
       toast({ title: "Success", description: data.message });
-      queryClient.invalidateQueries({ queryKey: ['customers', 'dashboardStats'] });
-      setFile(null);
-      setData([]);
-      setHeaders([]);
-      setMapping({});
+      queryClient.invalidateQueries({ queryKey: [selectedTable, 'dashboardStats'] });
+      resetForm();
     },
     onError: (error: any) => {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     },
   });
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      setFile(e.target.files[0]);
-    }
+  const resetForm = () => {
+    setFile(null);
+    setSheets([]);
+    setPreview({});
+    setSelectedSheet('');
+    setMapping({});
   };
 
-  const handleParse = () => {
-    if (!file) return;
-    Papa.parse(file, {
-      header: true,
-      skipEmptyLines: true,
-      complete: (results) => {
-        setHeaders(results.meta.fields || []);
-        setData(results.data);
-        setMapping({});
-      },
-    });
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      const file = e.target.files[0];
+      setFile(file);
+      try {
+        const { sheets, preview } = await readExcelFile(file);
+        setSheets(sheets);
+        setPreview(preview);
+        if (sheets.length > 0) {
+          setSelectedSheet(sheets[0]);
+        }
+      } catch (error: any) {
+        toast({ 
+          title: "Error reading file", 
+          description: error.message, 
+          variant: "destructive" 
+        });
+      }
+    }
   };
 
   const handleMappingChange = (header: string, value: string) => {
     setMapping(prev => ({ ...prev, [header]: value }));
   };
 
+  const validateMapping = () => {
+    const mappedFields = Object.values(mapping);
+    const requiredFields = TABLE_CONFIGS[selectedTable].requiredFields;
+    return requiredFields.every(field => mappedFields.includes(field));
+  };
+
   const getMappedData = () => {
-    return data.map(row => {
-        const newRow: { [key: string]: any } = {};
-        for (const header in mapping) {
-            if (row[header]) {
-                newRow[mapping[header]] = row[header];
-            }
+    if (!selectedSheet || !preview[selectedSheet]) return [];
+    
+    return preview[selectedSheet].map(row => {
+      const newRow: { [key: string]: any } = {};
+      for (const [sourceField, targetField] of Object.entries(mapping)) {
+        if (row[sourceField] !== undefined) {
+          newRow[targetField] = row[sourceField];
         }
-        return newRow;
-    }).filter(row => row.fullName && row.mobileNumber && row.civilId);
+      }
+      return newRow;
+    });
+  };
+
+  const handleImport = () => {
+    const config: ImportConfig = {
+      tableName: selectedTable,
+      sheetName: selectedSheet,
+      mappings: mapping
+    };
+    mutation.mutate(config);
   };
 
   const mappedData = getMappedData();
-
-  const validateMapping = () => {
-      const mappedKeys = Object.values(mapping);
-      const requiredKeys = ['fullName', 'mobileNumber', 'civilId'];
-      return requiredKeys.every(key => mappedKeys.includes(key));
-  };
-
   const isMappingValid = validateMapping();
-
-  const handleImport = () => {
-      mutation.mutate(mappedData);
-  }
+  const headers = selectedSheet && preview[selectedSheet]?.length > 0 
+    ? Object.keys(preview[selectedSheet][0]) 
+    : [];
 
   return (
-    <div>
-      <h1 className="text-3xl font-bold mb-4">استيراد البيانات من CSV</h1>
-      <div className="p-4 border rounded-lg bg-card">
-        <h2 className="text-xl font-semibold mb-2">الخطوة 1: رفع الملف</h2>
-        <div className="flex items-center gap-4">
-          <Input type="file" accept=".csv" onChange={handleFileChange} className="max-w-xs"/>
-          <Button onClick={handleParse} disabled={!file}>تحليل الملف</Button>
-        </div>
-      </div>
+    <div className="container mx-auto p-6">
+      <h1 className="text-3xl font-bold mb-6">استيراد البيانات</h1>
 
-      {headers.length > 0 && (
-        <div className="p-4 mt-4 border rounded-lg bg-card">
-          <h2 className="text-xl font-semibold mb-2">الخطوة 2: ربط الأعمدة</h2>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {headers.map(header => (
-              <div key={header}>
-                <p className="font-bold">{header}</p>
-                <Select onValueChange={(value) => handleMappingChange(header, value)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="اختر الحقل" />
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle>الخطوة 1: اختيار نوع البيانات والملف</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-4">
+            <div>
+              <label className="text-sm font-medium mb-2 block">نوع البيانات</label>
+              <Select value={selectedTable} onValueChange={(value: keyof typeof TABLE_CONFIGS) => setSelectedTable(value)}>
+                <SelectTrigger className="w-[200px]">
+                  <SelectValue placeholder="اختر نوع البيانات" />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.entries(TABLE_CONFIGS).map(([key, config]) => (
+                    <SelectItem key={key} value={key}>
+                      {config.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div>
+              <label className="text-sm font-medium mb-2 block">الملف (Excel أو CSV)</label>
+              <div className="flex items-center gap-4">
+                <Input 
+                  type="file" 
+                  accept=".xlsx,.xls,.csv" 
+                  onChange={handleFileChange} 
+                  className="max-w-xs"
+                />
+              </div>
+            </div>
+
+            {sheets.length > 0 && (
+              <div>
+                <label className="text-sm font-medium mb-2 block">اختر ورقة العمل</label>
+                <Select value={selectedSheet} onValueChange={setSelectedSheet}>
+                  <SelectTrigger className="w-[200px]">
+                    <SelectValue placeholder="اختر ورقة العمل" />
                   </SelectTrigger>
                   <SelectContent>
-                    {customerFields.map(field => (
-                      <SelectItem key={field.value} value={field.value}>
-                        {field.label}
+                    {sheets.map(sheet => (
+                      <SelectItem key={sheet} value={sheet}>
+                        {sheet}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
-            ))}
+            )}
           </div>
-        </div>
+        </CardContent>
+      </Card>
+
+      {headers.length > 0 && (
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle>الخطوة 2: ربط الأعمدة</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              {headers.map(header => (
+                <div key={header}>
+                  <p className="text-sm font-medium mb-2">{header}</p>
+                  <Select onValueChange={(value) => handleMappingChange(header, value)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="اختر الحقل" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {TABLE_CONFIGS[selectedTable].fields.map(field => (
+                        <SelectItem key={field.value} value={field.value}>
+                          {field.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       {Object.keys(mapping).length > 0 && (
-        <div className="p-4 mt-4 border rounded-lg bg-card">
-            <h2 className="text-xl font-semibold mb-2">الخطوة 3: معاينة البيانات والتحقق منها</h2>
+        <Card>
+          <CardHeader>
+            <CardTitle>الخطوة 3: معاينة البيانات والتحقق منها</CardTitle>
+          </CardHeader>
+          <CardContent>
             {isMappingValid ? (
-                <>
-                    <p className='text-sm text-muted-foreground mb-2'>
-                        تم العثور على {mappedData.length} سجل صالح للاستيراد.
-                    </p>
-                    <div className="max-h-96 overflow-auto">
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    {customerFields.map(field => (
-                                        <TableHead key={field.value}>{field.label}</TableHead>
-                                    ))}
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {mappedData.slice(0, 10).map((row, i) => (
-                                    <TableRow key={i}>
-                                        {customerFields.map(field => (
-                                            <TableCell key={field.value}>{row[field.value]}</TableCell>
-                                        ))}
-                                    </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
-                    </div>
-                    <div className="mt-4 flex justify-end">
-                        <Button onClick={handleImport} disabled={mutation.isPending || mappedData.length === 0}>
-                            {mutation.isPending ? 'جاري الاستيراد...' : `استيراد ${mappedData.length} سجلات`}
-                        </Button>
-                    </div>
-                </>
-            ) : (
-                <p className="text-destructive">
-                    يرجى ربط جميع الحقول المطلوبة (الاسم الكامل، رقم الهاتف، الرقم المدني) للمتابعة.
+              <>
+                <p className='text-sm text-muted-foreground mb-4'>
+                  معاينة أول 5 سجلات من البيانات المحددة
                 </p>
+                <div className="border rounded-lg overflow-hidden mb-4">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        {TABLE_CONFIGS[selectedTable].fields
+                          .filter(field => Object.values(mapping).includes(field.value))
+                          .map(field => (
+                            <TableHead key={field.value}>{field.label}</TableHead>
+                          ))}
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {mappedData.map((row, i) => (
+                        <TableRow key={i}>
+                          {TABLE_CONFIGS[selectedTable].fields
+                            .filter(field => Object.values(mapping).includes(field.value))
+                            .map(field => (
+                              <TableCell key={field.value}>{row[field.value]}</TableCell>
+                            ))}
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+                <div className="flex justify-end">
+                  <Button 
+                    onClick={handleImport} 
+                    disabled={mutation.isPending || mappedData.length === 0}
+                  >
+                    {mutation.isPending ? 'جاري الاستيراد...' : 'استيراد البيانات'}
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <p className="text-destructive">
+                يرجى ربط جميع الحقول المطلوبة ({TABLE_CONFIGS[selectedTable].requiredFields.map(f => 
+                  TABLE_CONFIGS[selectedTable].fields.find(field => field.value === f)?.label
+                ).join(', ')}) للمتابعة.
+              </p>
             )}
-        </div>
+          </CardContent>
+        </Card>
       )}
     </div>
   );

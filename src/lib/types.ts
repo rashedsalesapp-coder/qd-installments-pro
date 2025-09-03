@@ -1,5 +1,42 @@
 // Type definitions for the Arabic Installment Sales Management System
 
+export interface CustomerRiskScore {
+  customerId: string;
+  score: number;
+  factors: string[];
+  lastUpdated: Date;
+}
+
+export interface PaymentPrediction {
+  customerId: string;
+  transactionId: string;
+  probability: number;
+  nextPaymentDate: Date;
+  recommendedAction: string;
+  lastUpdated: Date;
+}
+
+export interface DocumentExtractionResult {
+  customerDetails: {
+    fullName?: string;
+    civilId?: string;
+    mobileNumber?: string;
+  };
+  transactionDetails: {
+    amount?: number;
+    installmentAmount?: number;
+    startDate?: string;
+    numberOfInstallments?: number;
+  };
+  confidenceScore: number;
+}
+
+export interface ChatbotResponse {
+  message: string;
+  suggestedActions?: string[];
+  data?: any;
+}
+
 export interface Customer {
   id: string;
   fullName: string;
