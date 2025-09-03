@@ -3,14 +3,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@/components/ui/use-toast";
 import { Customer } from "@/lib/types";
-import { generateCustomerId } from "@/lib/utils-arabic";
 import { UserPlus, Save } from "lucide-react";
 
 interface CustomerFormProps {
   customer?: Customer;
-  onSave: (customer: Omit<Customer, 'id' | 'createdAt' | 'updatedAt'>) => void;
+  onSave: (customer: Omit<Customer, 'id' | 'created_at' | 'updatedAt'>) => void;
   onCancel: () => void;
   isLoading: boolean;
 }
@@ -58,6 +57,7 @@ const CustomerForm = ({ customer, onSave, onCancel, isLoading }: CustomerFormPro
                 placeholder="أدخل الاسم الكامل"
                 className="text-right"
                 required
+                disabled={isLoading}
               />
             </div>
             
@@ -70,6 +70,7 @@ const CustomerForm = ({ customer, onSave, onCancel, isLoading }: CustomerFormPro
                 placeholder="أدخل رقم الهاتف"
                 className="text-right"
                 required
+                disabled={isLoading}
               />
             </div>
           </div>
@@ -83,6 +84,7 @@ const CustomerForm = ({ customer, onSave, onCancel, isLoading }: CustomerFormPro
               placeholder="أدخل الرقم المدني"
               className="text-right"
               required
+              disabled={isLoading}
             />
           </div>
 

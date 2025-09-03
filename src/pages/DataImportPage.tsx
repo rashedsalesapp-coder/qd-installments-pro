@@ -6,7 +6,15 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/components/ui/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { importCustomers } from '@/lib/localApi';
+import { supabase } from '@/lib/supabaseClient';
+
+// --- Supabase API Function ---
+const importCustomers = async (customers: any[]) => {
+    const { error } = await supabase.from('customers').insert(customers);
+    if (error) throw new Error(error.message);
+    return { message: `${customers.length} customers imported successfully.` };
+};
+// --- End Supabase API Function ---
 
 const customerFields = [
   { value: 'fullName', label: 'الاسم الكامل' },
@@ -27,7 +35,6 @@ const DataImportPage = () => {
     onSuccess: (data) => {
       toast({ title: "Success", description: data.message });
       queryClient.invalidateQueries({ queryKey: ['customers', 'dashboardStats'] });
-      // Reset state after import
       setFile(null);
       setData([]);
       setHeaders([]);
@@ -70,7 +77,7 @@ const DataImportPage = () => {
             }
         }
         return newRow;
-    }).filter(row => row.fullName && row.mobileNumber && row.civilId); // Basic validation
+    }).filter(row => row.fullName && row.mobileNumber && row.civilId);
   };
 
   const mappedData = getMappedData();
@@ -129,7 +136,7 @@ const DataImportPage = () => {
             {isMappingValid ? (
                 <>
                     <p className='text-sm text-muted-foreground mb-2'>
-                        تم العثور على {mappedData.length} سجل صالح للاستيراد. سيتم تجاهل الصفوف التي لا تحتوي على جميع الحقول المطلوبة.
+                        تم العثور على {mappedData.length} سجل صالح للاستيراد.
                     </p>
                     <div className="max-h-96 overflow-auto">
                         <Table>

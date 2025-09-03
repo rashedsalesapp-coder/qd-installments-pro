@@ -4,7 +4,28 @@ import CustomerList from "@/components/customers/CustomerList";
 import CustomerForm from "@/components/customers/CustomerForm";
 import { Customer } from "@/lib/types";
 import { useToast } from "@/components/ui/use-toast";
-import { getCustomers, addCustomer, updateCustomer } from "@/lib/localApi";
+import { supabase } from "@/lib/supabaseClient";
+
+// --- Supabase API Functions ---
+const getCustomers = async (): Promise<Customer[]> => {
+    const { data, error } = await supabase.from('customers').select('*').order('created_at', { ascending: false });
+    if (error) throw new Error(error.message);
+    return data as Customer[];
+};
+
+const addCustomer = async (customer: Omit<Customer, 'id' | 'created_at' | 'updatedAt'>): Promise<any> => {
+    const { data, error } = await supabase.from('customers').insert([customer]).select();
+    if (error) throw new Error(error.message);
+    return data;
+};
+
+const updateCustomer = async (customer: Partial<Customer>): Promise<any> => {
+    const { id, ...updateData } = customer;
+    const { data, error } = await supabase.from('customers').update(updateData).eq('id', id);
+    if (error) throw new Error(error.message);
+    return data;
+};
+// --- End Supabase API Functions ---
 
 const CustomersPage = () => {
   const queryClient = useQueryClient();
@@ -22,10 +43,10 @@ const CustomersPage = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["customers"] });
       setShowCustomerForm(false);
-      toast({ title: "تم إضافة العميل", description: "تمت إضافة العميل الجديد بنجاح." });
+      toast({ title: "تم إضافة العميل بنجاح" });
     },
-    onError: () => {
-        toast({ variant: "destructive", title: "خطأ", description: "فشل في إضافة العميل." });
+    onError: (error: any) => {
+        toast({ variant: "destructive", title: "خطأ", description: error.message });
     }
   });
 
@@ -35,16 +56,16 @@ const CustomersPage = () => {
       queryClient.invalidateQueries({ queryKey: ["customers"] });
       setShowCustomerForm(false);
       setEditingCustomer(undefined);
-      toast({ title: "تم تحديث العميل", description: "تم تحديث بيانات العميل بنجاح." });
+      toast({ title: "تم تحديث العميل بنجاح" });
     },
-    onError: () => {
-        toast({ variant: "destructive", title: "خطأ", description: "فشل في تحديث العميل." });
+    onError: (error: any) => {
+        toast({ variant: "destructive", title: "خطأ", description: error.message });
     }
   });
 
-  const handleSaveCustomer = (customerData: Omit<Customer, 'id' | 'createdAt' | 'updatedAt'>) => {
+  const handleSaveCustomer = (customerData: Omit<Customer, 'id' | 'created_at' | 'updatedAt'>) => {
     if (editingCustomer) {
-        updateMutation.mutate({ ...customerData, id: editingCustomer.id, createdAt: editingCustomer.createdAt, updatedAt: editingCustomer.updatedAt });
+        updateMutation.mutate({ ...customerData, id: editingCustomer.id });
     } else {
         addMutation.mutate(customerData);
     }

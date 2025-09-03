@@ -1,15 +1,18 @@
-import { NavLink, useNavigate } from "react-router-dom";
-import { Calculator, Users, Receipt, LogOut, Upload, FileText, Settings } from "lucide-react";
+import { NavLink } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
-import { FAKE_AUTH_TOKEN } from "@/pages/LoginPage";
+import {
+    Calculator,
+    Users,
+    Receipt,
+    LogOut,
+    Upload,
+    FileText,
+    Settings
+} from "lucide-react";
 
 const Header = () => {
-  const navigate = useNavigate();
-
-  const handleLogout = () => {
-    FAKE_AUTH_TOKEN = null;
-    navigate("/login");
-  };
+  const { signOut } = useAuth();
 
   const navigationItems = [
     { to: '/dashboard', label: 'لوحة التحكم', icon: Calculator },
@@ -38,7 +41,7 @@ const Header = () => {
             </div>
           </div>
 
-          <nav className="flex items-center space-x-reverse space-x-2">
+          <nav className="hidden md:flex items-center space-x-reverse space-x-2">
             {navigationItems.map((item) => {
               const Icon = item.icon;
               return (
@@ -60,7 +63,7 @@ const Header = () => {
             })}
           </nav>
 
-          <Button onClick={handleLogout} variant="outline" size="sm">
+          <Button onClick={signOut} variant="outline" size="sm">
             <LogOut className="h-4 w-4 ml-2" />
             تسجيل الخروج
           </Button>

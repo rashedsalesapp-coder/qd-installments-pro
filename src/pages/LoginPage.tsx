@@ -5,15 +5,11 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
-
-// In a real app, you would have a more robust auth system (e.g., context, tokens)
-// For now, we'll use a simple in-memory flag.
-// This should be replaced with a proper auth provider.
-export let FAKE_AUTH_TOKEN: string | null = null;
+import { supabase } from "@/lib/supabaseClient";
 
 const LoginPage = () => {
-  const [username, setUsername] = useState("admin");
-  const [password, setPassword] = useState("admin");
+  const [email, setEmail] = useState("admin@example.com"); // Supabase uses email for login
+  const [password, setPassword] = useState("admin123");
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -22,26 +18,23 @@ const LoginPage = () => {
     e.preventDefault();
     setIsLoading(true);
 
-    // In a real app, you'd make an API call here.
-    // Simulating API call with a delay.
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
 
-    // Mocking the login logic since the backend isn't running.
-    // In a real scenario, you'd get a token from the backend.
-    if (username === "admin" && password === "admin") {
+    if (error) {
+      toast({
+        variant: "destructive",
+        title: "فشل تسجيل الدخول",
+        description: error.message,
+      });
+    } else {
       toast({
         title: "تم تسجيل الدخول بنجاح",
         description: "مرحبا بعودتك!",
       });
-      FAKE_AUTH_TOKEN = "supersecrettoken"; // Fake token
       navigate("/");
-    } else {
-      toast({
-        variant: "destructive",
-        title: "فشل تسجيل الدخول",
-        description: "اسم المستخدم أو كلمة المرور غير صحيحة.",
-      });
-      FAKE_AUTH_TOKEN = null;
     }
 
     setIsLoading(false);
@@ -53,18 +46,18 @@ const LoginPage = () => {
         <CardHeader className="text-right">
           <CardTitle className="text-2xl">تسجيل الدخول</CardTitle>
           <CardDescription>
-            أدخل اسم المستخدم وكلمة المرور للوصول إلى حسابك.
+            أدخل بريدك الإلكتروني وكلمة المرور للوصول إلى حسابك.
           </CardDescription>
         </CardHeader>
         <form onSubmit={handleLogin}>
           <CardContent className="grid gap-4">
             <div className="grid gap-2 text-right">
-              <Label htmlFor="username">اسم المستخدم</Label>
+              <Label htmlFor="email">البريد الإلكتروني</Label>
               <Input
-                id="username"
-                type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 required
                 className="text-right"
               />

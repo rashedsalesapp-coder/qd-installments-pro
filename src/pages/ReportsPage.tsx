@@ -4,7 +4,25 @@ import { useToast } from '@/components/ui/use-toast';
 import { Transaction, ExportRow } from '@/lib/types';
 import * as XLSX from 'xlsx';
 import { format, setDate, addMonths } from 'date-fns';
-import { getReportableTransactions } from '@/lib/localApi';
+import { supabase } from '@/lib/supabaseClient';
+
+// --- Supabase API Function ---
+const getReportableTransactions = async (): Promise<Transaction[]> => {
+    const { data, error } = await supabase
+        .from('transactions')
+        .select(`*, customers (fullName, mobileNumber)`)
+        .gt('remainingBalance', 0)
+        .eq('legalCase', false);
+
+    if (error) throw new Error(error.message);
+
+    return data.map((t: any) => ({
+        ...t,
+        customerName: t.customers?.fullName || 'Unknown',
+        mobileNumber: t.customers?.mobileNumber || '',
+    }));
+};
+// --- End Supabase API Function ---
 
 const ReportsPage = () => {
     const { toast } = useToast();
@@ -26,11 +44,11 @@ const ReportsPage = () => {
             const dueDate = format(setDate(now, 20), 'dd/MM/yyyy');
             const expiryDate = format(addMonths(now, 2), 'yyyy-MM-dd');
 
-            const installmentNumber = (t.totalInstallments - Math.floor(t.remainingBalance / t.monthlyInstallmentAmount)) + 1;
+            const installmentNumber = (t.totalInstallments - Math.floor(t.remainingBalance / t.installmentAmount)) + 1;
 
             return {
-                'Description': `${t.id} - ${transactionDate} - ${t.monthlyInstallmentAmount}`,
-                'Amount': t.monthlyInstallmentAmount,
+                'Description': `${t.id.substring(0, 8)} - ${transactionDate} - ${t.installmentAmount}`,
+                'Amount': t.installmentAmount,
                 'First Name': t.customerName,
                 'Last Name': '',
                 'Email Address': 'email@mail.com',

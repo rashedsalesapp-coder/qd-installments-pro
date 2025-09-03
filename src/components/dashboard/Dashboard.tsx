@@ -6,7 +6,21 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } fro
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
-import { getDashboardStats, checkOverdueTransactions } from "@/lib/localApi";
+import { supabase } from "@/lib/supabaseClient";
+
+// --- Supabase API Functions ---
+const getDashboardStats = async (): Promise<DashboardStats> => {
+    const { data, error } = await supabase.rpc('get_dashboard_stats');
+    if (error) throw new Error(error.message);
+    return data as DashboardStats;
+};
+
+const checkOverdueTransactions = async (): Promise<{ message: string }> => {
+    const { data, error } = await supabase.rpc('check_overdue_transactions');
+    if (error) throw new Error(error.message);
+    return { message: data };
+};
+// --- End Supabase API Functions ---
 
 const Dashboard = () => {
   const queryClient = useQueryClient();
@@ -23,8 +37,8 @@ const Dashboard = () => {
         queryClient.invalidateQueries({ queryKey: ['dashboardStats'] });
         queryClient.invalidateQueries({ queryKey: ['transactions'] });
     },
-    onError: () => {
-        toast({ title: "Error", description: "Failed to check for overdue transactions.", variant: "destructive" });
+    onError: (error: any) => {
+        toast({ title: "Error", description: error.message, variant: "destructive" });
     }
   });
 
@@ -35,13 +49,16 @@ const Dashboard = () => {
   if (isLoading) {
     return (
         <div className="space-y-6">
-            <Skeleton className="h-12 w-1/4" />
+            <div className="flex items-center justify-between">
+                <Skeleton className="h-12 w-1/4" />
+                <Skeleton className="h-10 w-32" />
+            </div>
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
-                {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-24" />)}
+                {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-28" />)}
             </div>
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-                <Skeleton className="col-span-4 h-64" />
-                <Skeleton className="col-span-3 h-64" />
+                <Skeleton className="col-span-4 h-80" />
+                <Skeleton className="col-span-3 h-80" />
             </div>
         </div>
     )
@@ -53,15 +70,11 @@ const Dashboard = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight text-foreground">
-            لوحة التحكم
-          </h2>
-          <p className="text-muted-foreground">
-            نظرة شاملة على أعمالك المالية
-          </p>
+          <h2 className="text-3xl font-bold tracking-tight text-foreground">لوحة التحكم</h2>
+          <p className="text-muted-foreground">نظرة شاملة على أعمالك المالية</p>
         </div>
         <Button onClick={() => overdueMutation.mutate()} disabled={overdueMutation.isPending}>
-            <RefreshCw className={`mr-2 h-4 w-4 ${overdueMutation.isPending ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`ml-2 h-4 w-4 ${overdueMutation.isPending ? 'animate-spin' : ''}`} />
             {overdueMutation.isPending ? 'جاري الفحص...' : 'فحص المتأخرات'}
         </Button>
       </div>
@@ -76,30 +89,26 @@ const Dashboard = () => {
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
         <div className="col-span-4 bg-card shadow-card rounded-lg border border-border p-6">
-            <h3 className="text-lg font-semibold text-foreground mb-4">
-              نظرة عامة على الإيرادات
-            </h3>
+            <h3 className="text-lg font-semibold text-foreground mb-4">نظرة عامة على الإيرادات</h3>
             <ResponsiveContainer width="100%" height={300}>
                 <BarChart data={chartData}>
                     <XAxis dataKey="name" />
                     <YAxis tickFormatter={(value) => new Intl.NumberFormat('ar-KW', { style: 'currency', currency: 'KWD' }).format(value)} />
                     <Tooltip formatter={(value) => new Intl.NumberFormat('ar-KW', { style: 'currency', currency: 'KWD' }).format(value as number)} />
                     <Legend />
-                    <Bar dataKey="إجمالي الإيرادات" fill="#22c55e" />
+                    <Bar dataKey="إجمالي الإيرادات" fill="#16a34a" />
                     <Bar dataKey="المبالغ المستحقة" fill="#f97316" />
                 </BarChart>
             </ResponsiveContainer>
         </div>
 
         <div className="col-span-3 bg-card shadow-card rounded-lg border border-border p-6">
-            <h3 className="text-lg font-semibold text-foreground mb-4">
-              إحصائيات سريعة
-            </h3>
+            <h3 className="text-lg font-semibold text-foreground mb-4">إحصائيات سريعة</h3>
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <span className="text-muted-foreground">معدل التحصيل</span>
                 <span className="font-semibold text-success">
-                    {stats.totalRevenue > 0 ? `${(( (stats.totalRevenue - stats.totalOutstanding) / stats.totalRevenue) * 100).toFixed(1)}%` : 'N/A'}
+                    {stats.totalRevenue > 0 ? `${(((stats.totalRevenue - stats.totalOutstanding) / stats.totalRevenue) * 100).toFixed(1)}%` : 'N/A'}
                 </span>
               </div>
               <div className="flex items-center justify-between">
