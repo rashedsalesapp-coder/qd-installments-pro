@@ -12,16 +12,14 @@ const sampleCustomers: Customer[] = [
     fullName: "أحمد محمد الخالد",
     mobileNumber: "96599887766",
     civilId: "289123456789",
-    createdAt: new Date("2024-01-15"),
-    updatedAt: new Date("2024-01-15"),
+    created_at: new Date("2024-01-15"),
   },
   {
     id: "CUS240002",
     fullName: "فاطمة علي السالم",
     mobileNumber: "96566778899",
     civilId: "289987654321",
-    createdAt: new Date("2024-02-10"),
-    updatedAt: new Date("2024-02-10"),
+    created_at: new Date("2024-02-10"),
   },
 ];
 
@@ -66,6 +64,7 @@ const Index = () => {
             setShowCustomerForm(false);
             setEditingCustomer(undefined);
           }}
+          isLoading={false}
         />
       );
     }
@@ -97,7 +96,6 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <Header currentPage={currentPage} onPageChange={setCurrentPage} />
       <main className="container mx-auto px-6 py-8">
         {renderCurrentPage()}
       </main>

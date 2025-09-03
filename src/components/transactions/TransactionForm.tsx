@@ -31,19 +31,19 @@ interface TransactionFormProps {
 const TransactionForm = ({ transaction, customers, onSave, onCancel, isLoading }: TransactionFormProps) => {
   const { toast } = useToast();
   const [formData, setFormData] = useState({
-    customerId: transaction?.customerId || "",
-    transactionDate: transaction?.transactionDate ? new Date(transaction.transactionDate) : new Date(),
-    totalInstallments: transaction?.totalInstallments || 12,
-    installmentAmount: transaction?.installmentAmount || 0,
-    firstInstallmentDate: transaction?.firstInstallmentDate ? new Date(transaction.firstInstallmentDate) : new Date(),
-    legalCase: transaction?.legalCase || false,
-    legalCaseDetails: transaction?.legalCaseDetails || "",
-    courtCollectionData: transaction?.courtCollectionData || "",
+    customerid: transaction?.customerid || "",
+    transactiondate: transaction?.transactiondate ? new Date(transaction.transactiondate) : new Date(),
+    totalinstallments: transaction?.totalinstallments || 12,
+    installmentamount: transaction?.installmentamount || 0,
+    firstinstallmentdate: transaction?.firstinstallmentdate ? new Date(transaction.firstinstallmentdate) : new Date(),
+    legalcase: transaction?.legalcase || false,
+    legalcasedetails: transaction?.legalcasedetails || "",
+    courtcollectiondata: transaction?.courtcollectiondata || "",
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.customerId || !formData.transactionDate || !formData.totalInstallments || !formData.installmentAmount) {
+    if (!formData.customerid || !formData.transactiondate || !formData.totalinstallments || !formData.installmentamount) {
       toast({
         title: "خطأ",
         description: "يرجى ملء جميع الحقول المطلوبة بشكل صحيح",
@@ -54,8 +54,8 @@ const TransactionForm = ({ transaction, customers, onSave, onCancel, isLoading }
     // Convert dates to ISO string for Supabase
     const dataToSave = {
         ...formData,
-        transactionDate: formData.transactionDate.toISOString().split('T')[0],
-        firstInstallmentDate: formData.firstInstallmentDate.toISOString().split('T')[0],
+        transactiondate: formData.transactiondate.toISOString().split('T')[0],
+        firstinstallmentdate: formData.firstinstallmentdate.toISOString().split('T')[0],
     };
     onSave(dataToSave);
   };
@@ -71,8 +71,8 @@ const TransactionForm = ({ transaction, customers, onSave, onCancel, isLoading }
             <div>
               <Label htmlFor="customerId">العميل *</Label>
               <Select
-                value={formData.customerId}
-                onValueChange={(value) => setFormData({ ...formData, customerId: value })}
+                value={formData.customerid}
+                onValueChange={(value) => setFormData({ ...formData, customerid: value })}
                 disabled={isLoading || !!transaction}
               >
                 <SelectTrigger>
@@ -93,21 +93,21 @@ const TransactionForm = ({ transaction, customers, onSave, onCancel, isLoading }
                 <PopoverTrigger asChild>
                   <Button variant={"outline"} className={cn("w-full justify-start text-right font-normal")} disabled={isLoading}>
                     <CalendarIcon className="ml-2 h-4 w-4" />
-                    {format(formData.transactionDate, "PPP")}
+                    {format(formData.transactiondate, "PPP")}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0">
-                  <Calendar mode="single" selected={formData.transactionDate} onSelect={(d) => d && setFormData({...formData, transactionDate: d})} initialFocus />
+                  <Calendar mode="single" selected={formData.transactiondate} onSelect={(d) => d && setFormData({...formData, transactiondate: d})} initialFocus />
                 </PopoverContent>
               </Popover>
             </div>
             <div>
               <Label htmlFor="totalInstallments">عدد الأقساط *</Label>
-              <Input type="number" value={formData.totalInstallments} onChange={(e) => setFormData({ ...formData, totalInstallments: +e.target.value })} disabled={isLoading} />
+              <Input type="number" value={formData.totalinstallments} onChange={(e) => setFormData({ ...formData, totalinstallments: +e.target.value })} disabled={isLoading} />
             </div>
             <div>
               <Label htmlFor="installmentAmount">مبلغ القسط الشهري *</Label>
-              <Input type="number" step="0.001" value={formData.installmentAmount} onChange={(e) => setFormData({ ...formData, installmentAmount: +e.target.value })} disabled={isLoading} />
+              <Input type="number" step="0.001" value={formData.installmentamount} onChange={(e) => setFormData({ ...formData, installmentamount: +e.target.value })} disabled={isLoading} />
             </div>
             <div>
               <Label htmlFor="firstInstallmentDueDate">تاريخ أول قسط *</Label>
@@ -115,11 +115,11 @@ const TransactionForm = ({ transaction, customers, onSave, onCancel, isLoading }
                 <PopoverTrigger asChild>
                   <Button variant={"outline"} className={cn("w-full justify-start text-right font-normal")} disabled={isLoading}>
                     <CalendarIcon className="ml-2 h-4 w-4" />
-                    {format(formData.firstInstallmentDate, "PPP")}
+                    {format(formData.firstinstallmentdate, "PPP")}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0">
-                  <Calendar mode="single" selected={formData.firstInstallmentDate} onSelect={(d) => d && setFormData({...formData, firstInstallmentDate: d})} initialFocus />
+                  <Calendar mode="single" selected={formData.firstinstallmentdate} onSelect={(d) => d && setFormData({...formData, firstinstallmentdate: d})} initialFocus />
                 </PopoverContent>
               </Popover>
             </div>
@@ -128,20 +128,20 @@ const TransactionForm = ({ transaction, customers, onSave, onCancel, isLoading }
           <div className="border-t pt-4">
             <h3 className="text-lg font-semibold mb-2">إجراءات قانونية</h3>
             <div className="flex items-center space-x-2">
-              <Switch id="legal-case" checked={formData.legalCase} onCheckedChange={(checked) => setFormData({ ...formData, legalCase: checked })} disabled={isLoading} />
+              <Switch id="legal-case" checked={formData.legalcase} onCheckedChange={(checked) => setFormData({ ...formData, legalcase: checked })} disabled={isLoading} />
               <Label htmlFor="legal-case">تم رفع قضية قانونية</Label>
             </div>
           </div>
 
-          {formData.legalCase && (
+          {formData.legalcase && (
             <div className="space-y-4">
               <div>
                 <Label htmlFor="legalCaseDetails">تفاصيل القضية</Label>
-                <Textarea id="legalCaseDetails" value={formData.legalCaseDetails} onChange={(e) => setFormData({ ...formData, legalCaseDetails: e.target.value })} disabled={isLoading} />
+                <Textarea id="legalCaseDetails" value={formData.legalcasedetails} onChange={(e) => setFormData({ ...formData, legalcasedetails: e.target.value })} disabled={isLoading} />
               </div>
               <div>
                 <Label htmlFor="courtCollectionData">بيانات تحصيل المحكمة</Label>
-                <Textarea id="courtCollectionData" value={formData.courtCollectionData} onChange={(e) => setFormData({ ...formData, courtCollectionData: e.target.value })} disabled={isLoading} />
+                <Textarea id="courtCollectionData" value={formData.courtcollectiondata} onChange={(e) => setFormData({ ...formData, courtcollectiondata: e.target.value })} disabled={isLoading} />
               </div>
             </div>
           )}

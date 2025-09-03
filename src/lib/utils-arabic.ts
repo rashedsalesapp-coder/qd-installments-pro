@@ -15,6 +15,12 @@ export function formatKWD(amount: number): string {
   }).format(amount);
 }
 
+// Alias for formatCurrency
+export const formatCurrency = formatKWD;
+
+// Alias for formatDate
+export const formatDate = formatArabicDate;
+
 // Format phone number with Kuwait prefix
 export function formatPhoneNumber(phone: string): string {
   const cleanPhone = phone.replace(/\D/g, '');

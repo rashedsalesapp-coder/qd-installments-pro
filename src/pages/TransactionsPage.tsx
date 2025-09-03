@@ -113,8 +113,8 @@ const TransactionsPage = () => {
         const template = localStorage.getItem('whatsappMessageTemplate') || DEFAULT_MESSAGE_TEMPLATE;
         const message = template
             .replace('[CustomerName]', transaction.customerName)
-            .replace('[Amount]', formatCurrency(transaction.installmentAmount))
-            .replace('[Balance]', formatCurrency(transaction.remainingBalance));
+            .replace('[Amount]', formatCurrency(transaction.installmentamount))
+            .replace('[Balance]', formatCurrency(transaction.remainingbalance));
 
         const whatsappUrl = `https://wa.me/${transaction.mobileNumber}?text=${encodeURIComponent(message)}`;
         window.open(whatsappUrl, '_blank');

@@ -30,14 +30,14 @@ const TransactionList = ({
   onSendReminder,
 }: TransactionListProps) => {
   const getStatusBadge = (transaction: Transaction) => {
-    if (transaction.legalCase) {
+    if (transaction.legalcase) {
       return <Badge variant="destructive">قضية قانونية</Badge>;
     }
-    if (transaction.remainingBalance <= 0) {
+    if (transaction.remainingbalance <= 0) {
       return <Badge className="bg-green-600">مكتملة</Badge>;
     }
-    if (transaction.overdueAmount > 0) {
-      return <Badge variant="warning">متأخرة</Badge>;
+    if (transaction.overdueamount > 0) {
+      return <Badge variant="secondary">متأخرة</Badge>;
     }
     return <Badge variant="secondary">نشطة</Badge>;
   };
@@ -63,13 +63,13 @@ const TransactionList = ({
           {transactions.map((transaction) => (
             <TableRow key={transaction.id}>
               <TableCell>{transaction.customerName}</TableCell>
-              <TableCell>{formatCurrency(transaction.totalAmount)}</TableCell>
-              <TableCell>{formatCurrency(transaction.remainingBalance)}</TableCell>
+              <TableCell>{formatCurrency(transaction.totalamount)}</TableCell>
+              <TableCell>{formatCurrency(transaction.remainingbalance)}</TableCell>
               <TableCell>{getStatusBadge(transaction)}</TableCell>
               <TableCell>{formatDate(new Date(transaction.created_at))}</TableCell>
               <TableCell>
                 <div className="flex items-center gap-1">
-                  {transaction.overdueAmount > 0 && (
+                  {transaction.overdueamount > 0 && (
                     <Button variant="ghost" size="icon" onClick={() => onSendReminder(transaction)} title="إرسال تذكير واتساب">
                         <MessageCircle className="h-4 w-4 text-blue-600" />
                     </Button>

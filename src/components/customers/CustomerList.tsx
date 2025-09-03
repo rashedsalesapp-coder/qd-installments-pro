@@ -86,7 +86,7 @@ const CustomerList = ({ customers, onAddCustomer, onEditCustomer, onViewCustomer
                     </TableCell>
                     <TableCell>{customer.mobileNumber}</TableCell>
                     <TableCell>{customer.civilId}</TableCell>
-                    <TableCell>{formatArabicDate(customer.createdAt)}</TableCell>
+                    <TableCell>{formatArabicDate(customer.created_at)}</TableCell>
                     <TableCell>
                       <div className="flex items-center space-x-reverse space-x-2">
                         <Button

@@ -56,7 +56,7 @@ const PaymentForm = ({ transaction, isOpen, onClose }: PaymentFormProps) => {
       toast({ title: "خطأ", description: "يرجى إدخال مبلغ صحيح.", variant: "destructive" });
       return;
     }
-    if (amount > transaction.remainingBalance) {
+    if (amount > transaction.remainingbalance) {
       toast({ title: "خطأ", description: "المبلغ المدفوع أكبر من المبلغ المتبقي.", variant: "destructive" });
       return;
     }
@@ -70,7 +70,7 @@ const PaymentForm = ({ transaction, isOpen, onClose }: PaymentFormProps) => {
         <DialogHeader>
           <DialogTitle>تسجيل دفعة للمعاملة</DialogTitle>
           <DialogDescription>
-            العميل: {transaction.customerName} | المبلغ المتبقي: {formatCurrency(transaction.remainingBalance)}
+            العميل: {transaction.customerName} | المبلغ المتبقي: {formatCurrency(transaction.remainingbalance)}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit}>

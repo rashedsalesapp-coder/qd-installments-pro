@@ -37,26 +37,26 @@ const ReportsPage = () => {
             return;
         }
 
-        const reportData: ExportRow[] = transactions.map(t => {
+        const reportData = transactions.map(t => {
             const now = new Date();
-            const transactionDate = format(new Date(t.transactionDate), 'yyyy-MM-dd');
+            const transactionDate = format(new Date(t.transactiondate), 'yyyy-MM-dd');
             const mobileNumber = t.mobileNumber || '';
             const dueDate = format(setDate(now, 20), 'dd/MM/yyyy');
             const expiryDate = format(addMonths(now, 2), 'yyyy-MM-dd');
 
-            const installmentNumber = (t.totalInstallments - Math.floor(t.remainingBalance / t.installmentAmount)) + 1;
+            const installmentNumber = (t.totalinstallments - Math.floor(t.remainingbalance / t.installmentamount)) + 1;
 
             return {
-                'Description': `${t.id.substring(0, 8)} - ${transactionDate} - ${t.installmentAmount}`,
-                'Amount': t.installmentAmount,
-                'First Name': t.customerName,
-                'Last Name': '',
-                'Email Address': 'email@mail.com',
-                'Mobile Number': mobileNumber.startsWith('965') ? mobileNumber : `965${mobileNumber}`,
-                'Due Date': dueDate,
-                'Reference': t.id,
-                'Notes': `Installment ${installmentNumber}`,
-                'Expiry': expiryDate
+                description: `${t.id.substring(0, 8)} - ${transactionDate} - ${t.installmentamount}`,
+                amount: t.installmentamount,
+                firstName: t.customerName,
+                lastName: '',
+                emailAddress: 'email@mail.com',
+                mobileNumber: mobileNumber.startsWith('965') ? mobileNumber : `965${mobileNumber}`,
+                dueDate: dueDate,
+                reference: t.id,
+                notes: `Installment ${installmentNumber}`,
+                expiry: expiryDate
             };
         });
 

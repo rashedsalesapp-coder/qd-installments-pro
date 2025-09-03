@@ -9,7 +9,7 @@ import { UserPlus, Save } from "lucide-react";
 
 interface CustomerFormProps {
   customer?: Customer;
-  onSave: (customer: Omit<Customer, 'id' | 'created_at' | 'updatedAt'>) => void;
+  onSave: (customer: Omit<Customer, 'id' | 'created_at'>) => void;
   onCancel: () => void;
   isLoading: boolean;
 }

@@ -5,29 +5,28 @@ export interface Customer {
   fullName: string;
   mobileNumber: string;
   civilId: string;
-  createdAt: Date;
-  updatedAt: Date;
+  created_at: Date;
 }
 
 export interface Transaction {
   id: string;
-  customerId: string;
-  customerName: string;
-  transactionDate: Date;
-  totalInstallments: number;
-  monthlyInstallmentAmount: number;
-  firstInstallmentDueDate: Date;
-  totalAmount: number;
-  totalPaid: number;
-  remainingBalance: number;
-  overdueInstallments: number;
-  overdueAmount: number;
-  isCompleted: boolean;
-  hasLegalCase: boolean;
-  legalCaseDetails?: string;
-  documents?: string[];
-  createdAt: Date;
-  updatedAt: Date;
+  customerid: string;
+  customerName?: string;
+  mobileNumber?: string;
+  transactiondate: Date;
+  totalinstallments: number;
+  installmentamount: number;
+  firstinstallmentdate: Date;
+  totalamount: number;
+  amountpaid: number;
+  remainingbalance: number;
+  overdueinstallments: number;
+  overdueamount: number;
+  legalcase: boolean;
+  legalcasedetails?: string;
+  courtcollectiondata?: string;
+  documents?: any;
+  created_at: Date;
 }
 
 export interface Payment {
