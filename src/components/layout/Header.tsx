@@ -1,16 +1,23 @@
-import { Calculator, Users, Receipt } from "lucide-react";
+import { NavLink, useNavigate } from "react-router-dom";
+import { Calculator, Users, Receipt, LogOut, Upload, FileText, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { FAKE_AUTH_TOKEN } from "@/pages/LoginPage";
 
-interface HeaderProps {
-  currentPage: string;
-  onPageChange: (page: string) => void;
-}
+const Header = () => {
+  const navigate = useNavigate();
 
-const Header = ({ currentPage, onPageChange }: HeaderProps) => {
+  const handleLogout = () => {
+    FAKE_AUTH_TOKEN = null;
+    navigate("/login");
+  };
+
   const navigationItems = [
-    { id: 'dashboard', label: 'لوحة التحكم', icon: Calculator },
-    { id: 'customers', label: 'العملاء', icon: Users },
-    { id: 'transactions', label: 'المعاملات', icon: Receipt },
+    { to: '/dashboard', label: 'لوحة التحكم', icon: Calculator },
+    { to: '/customers', label: 'العملاء', icon: Users },
+    { to: '/transactions', label: 'المعاملات', icon: Receipt },
+    { to: '/import', label: 'استيراد', icon: Upload },
+    { to: '/reports', label: 'التقارير', icon: FileText },
+    { to: '/settings', label: 'الإعدادات', icon: Settings },
   ];
 
   return (
@@ -35,18 +42,28 @@ const Header = ({ currentPage, onPageChange }: HeaderProps) => {
             {navigationItems.map((item) => {
               const Icon = item.icon;
               return (
-                <Button
-                  key={item.id}
-                  variant={currentPage === item.id ? "default" : "ghost"}
-                  onClick={() => onPageChange(item.id)}
-                  className="flex items-center space-x-reverse space-x-2"
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  className={({ isActive }) =>
+                    `flex items-center space-x-reverse space-x-2 px-3 py-2 rounded-md text-sm font-medium ${
+                      isActive
+                        ? 'bg-primary text-primary-foreground'
+                        : 'text-muted-foreground hover:bg-muted'
+                    }`
+                  }
                 >
                   <Icon className="h-4 w-4" />
                   <span>{item.label}</span>
-                </Button>
+                </NavLink>
               );
             })}
           </nav>
+
+          <Button onClick={handleLogout} variant="outline" size="sm">
+            <LogOut className="h-4 w-4 ml-2" />
+            تسجيل الخروج
+          </Button>
         </div>
       </div>
     </header>

@@ -10,11 +10,12 @@ import { UserPlus, Save } from "lucide-react";
 
 interface CustomerFormProps {
   customer?: Customer;
-  onSave: (customer: Customer) => void;
+  onSave: (customer: Omit<Customer, 'id' | 'createdAt' | 'updatedAt'>) => void;
   onCancel: () => void;
+  isLoading: boolean;
 }
 
-const CustomerForm = ({ customer, onSave, onCancel }: CustomerFormProps) => {
+const CustomerForm = ({ customer, onSave, onCancel, isLoading }: CustomerFormProps) => {
   const { toast } = useToast();
   const [formData, setFormData] = useState({
     fullName: customer?.fullName || '',
@@ -34,21 +35,7 @@ const CustomerForm = ({ customer, onSave, onCancel }: CustomerFormProps) => {
       return;
     }
 
-    const customerData: Customer = {
-      id: customer?.id || generateCustomerId(),
-      fullName: formData.fullName,
-      mobileNumber: formData.mobileNumber,
-      civilId: formData.civilId,
-      createdAt: customer?.createdAt || new Date(),
-      updatedAt: new Date(),
-    };
-
-    onSave(customerData);
-    
-    toast({
-      title: "تم الحفظ",
-      description: customer ? "تم تحديث بيانات العميل بنجاح" : "تم إضافة العميل الجديد بنجاح",
-    });
+    onSave(formData);
   };
 
   return (
@@ -100,12 +87,12 @@ const CustomerForm = ({ customer, onSave, onCancel }: CustomerFormProps) => {
           </div>
 
           <div className="flex items-center justify-end space-x-reverse space-x-4 pt-4">
-            <Button type="button" variant="outline" onClick={onCancel}>
+            <Button type="button" variant="outline" onClick={onCancel} disabled={isLoading}>
               إلغاء
             </Button>
-            <Button type="submit" className="flex items-center space-x-reverse space-x-2">
+            <Button type="submit" className="flex items-center space-x-reverse space-x-2" disabled={isLoading}>
               <Save className="h-4 w-4" />
-              <span>{customer ? "تحديث" : "حفظ"}</span>
+              <span>{isLoading ? (customer ? 'جاري التحديث...' : 'جاري الحفظ...') : (customer ? "تحديث" : "حفظ")}</span>
             </Button>
           </div>
         </form>

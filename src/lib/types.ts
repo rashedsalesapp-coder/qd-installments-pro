@@ -13,6 +13,7 @@ export interface Transaction {
   id: string;
   customerId: string;
   customerName: string;
+  mobileNumber?: string; // Optional because it's only fetched for the report
   transactionDate: Date;
   totalInstallments: number;
   monthlyInstallmentAmount: number;
