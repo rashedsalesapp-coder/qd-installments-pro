@@ -8,8 +8,8 @@ import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/lib/supabaseClient";
 
 const LoginPage = () => {
-  const [email, setEmail] = useState("admin@example.com"); // Supabase uses email for login
-  const [password, setPassword] = useState("admin123");
+  const [email, setEmail] = useState(""); // Supabase uses email for login
+  const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
