@@ -19,9 +19,9 @@ const CustomerList = ({ customers, onAddCustomer, onEditCustomer, onViewCustomer
   const [searchTerm, setSearchTerm] = useState("");
 
   const filteredCustomers = customers.filter(customer =>
-    customer.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    customer.mobileNumber.includes(searchTerm) ||
-    customer.civilId.includes(searchTerm)
+    (customer.fullName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (customer.mobileNumber || '').includes(searchTerm) ||
+    (customer.civilId || '').includes(searchTerm)
   );
 
   return (
