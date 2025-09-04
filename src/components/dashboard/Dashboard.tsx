@@ -7,13 +7,13 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } fro
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
-import { supabase } from "@/lib/supabaseClient";
+import { supabase } from "@/integrations/supabase/client";
 
 // --- Supabase API Functions ---
 const getDashboardStats = async (): Promise<DashboardStats> => {
     const { data, error } = await supabase.rpc('get_dashboard_stats');
     if (error) throw new Error(error.message);
-    return data as DashboardStats;
+    return data as unknown as DashboardStats;
 };
 
 const checkOverdueTransactions = async (): Promise<{ message: string }> => {

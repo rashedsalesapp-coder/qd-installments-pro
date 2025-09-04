@@ -4,22 +4,34 @@ import { useToast } from '@/components/ui/use-toast';
 import { Transaction, ExportRow } from '@/lib/types';
 import * as XLSX from 'xlsx';
 import { format, setDate, addMonths } from 'date-fns';
-import { supabase } from '@/lib/supabaseClient';
+import { supabase } from '@/integrations/supabase/client';
 
 // --- Supabase API Function ---
 const getReportableTransactions = async (): Promise<Transaction[]> => {
     const { data, error } = await supabase
         .from('transactions')
-        .select(`*, customers (fullName, mobileNumber)`)
-        .gt('remainingBalance', 0)
-        .eq('legalCase', false);
+        .select(`*, customers (fullname, mobilenumber)`)
+        .gt('remainingbalance', 0)
+        .eq('legalcase', false);
 
     if (error) throw new Error(error.message);
 
     return data.map((t: any) => ({
-        ...t,
-        customerName: t.customers?.fullName || 'Unknown',
-        mobileNumber: t.customers?.mobileNumber || '',
+        id: t.id,
+        customerid: t.customerid,
+        transactiondate: new Date(t.transactiondate),
+        totalinstallments: t.totalinstallments,
+        installmentamount: t.installmentamount,
+        firstinstallmentdate: new Date(t.firstinstallmentdate),
+        totalamount: t.totalamount,
+        amountpaid: t.amountpaid,
+        remainingbalance: t.remainingbalance,
+        legalcase: t.legalcase,
+        overdueinstallments: t.overdueinstallments || 0,
+        overdueamount: t.overdueamount || 0,
+        customerName: t.customers?.fullname || 'Unknown',
+        mobileNumber: t.customers?.mobilenumber || '',
+        created_at: new Date(t.created_at),
     }));
 };
 // --- End Supabase API Function ---

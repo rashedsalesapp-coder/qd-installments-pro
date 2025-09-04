@@ -5,39 +5,75 @@ import TransactionForm from "@/components/transactions/TransactionForm";
 import PaymentForm from "@/components/payments/PaymentForm";
 import { Transaction, Customer } from "@/lib/types";
 import { useToast } from "@/components/ui/use-toast";
-import { supabase } from "@/lib/supabaseClient";
+import { supabase } from "@/integrations/supabase/client";
 import { formatCurrency } from "@/lib/utils-arabic";
 
 // --- Supabase API Functions ---
 const getTransactions = async (): Promise<Transaction[]> => {
     const { data, error } = await supabase
         .from('transactions')
-        .select(`*, customers (fullName, mobileNumber)`)
+        .select(`*, customers (fullname, mobilenumber)`)
         .order('created_at', { ascending: false });
 
     if (error) throw new Error(error.message);
 
     return data.map((t: any) => ({
-        ...t,
-        customerName: t.customers?.fullName || 'Unknown',
-        mobileNumber: t.customers?.mobileNumber || '',
+        id: t.id,
+        customerid: t.customerid,
+        transactiondate: new Date(t.transactiondate),
+        totalinstallments: t.totalinstallments,
+        installmentamount: t.installmentamount,
+        firstinstallmentdate: new Date(t.firstinstallmentdate),
+        totalamount: t.totalamount,
+        amountpaid: t.amountpaid,
+        remainingbalance: t.remainingbalance,
+        legalcase: t.legalcase,
+        overdueinstallments: t.overdueinstallments || 0,
+        overdueamount: t.overdueamount || 0,
+        customerName: t.customers?.fullname || 'Unknown',
+        mobileNumber: t.customers?.mobilenumber || '',
+        created_at: new Date(t.created_at),
     }));
 };
 
 const getCustomers = async (): Promise<Customer[]> => {
     const { data, error } = await supabase.from('customers').select('*');
     if (error) throw new Error(error.message);
-    return data as Customer[];
+    return data.map((customer: any) => ({
+        id: customer.id,
+        fullName: customer.fullname,
+        mobileNumber: customer.mobilenumber,
+        civilId: customer.civilid,
+        created_at: new Date(customer.created_at),
+    }));
 };
 
 const addTransaction = async (transaction: Omit<Transaction, 'id' | 'created_at' | 'customerName' | 'mobileNumber'>): Promise<any> => {
-    const { data, error } = await supabase.from('transactions').insert([transaction]).select();
+    const transactionData = {
+        customerid: transaction.customerid,
+        transactiondate: transaction.transactiondate.toISOString().split('T')[0],
+        totalinstallments: transaction.totalinstallments,
+        installmentamount: transaction.installmentamount,
+        firstinstallmentdate: transaction.firstinstallmentdate.toISOString().split('T')[0],
+        totalamount: transaction.totalamount,
+        amountpaid: transaction.amountpaid,
+        remainingbalance: transaction.remainingbalance,
+        legalcase: transaction.legalcase,
+    };
+    const { data, error } = await supabase.from('transactions').insert([transactionData]).select();
     if (error) throw new Error(error.message);
     return data;
 };
 
 const updateTransaction = async (transaction: Partial<Transaction>): Promise<any> => {
-    const { id, customerName, mobileNumber, ...updateData } = transaction;
+    const { id, customerName, mobileNumber, ...rest } = transaction;
+    const updateData: any = { ...rest };
+    
+    // Convert camelCase to snake_case for database
+    if (rest.customerid) updateData.customerid = rest.customerid;
+    if (rest.transactiondate) updateData.transactiondate = rest.transactiondate instanceof Date ? rest.transactiondate.toISOString().split('T')[0] : rest.transactiondate;
+    if (rest.firstinstallmentdate) updateData.firstinstallmentdate = rest.firstinstallmentdate instanceof Date ? rest.firstinstallmentdate.toISOString().split('T')[0] : rest.firstinstallmentdate;
+    
     const { data, error } = await supabase.from('transactions').update(updateData).eq('id', id);
     if (error) throw new Error(error.message);
     return data;

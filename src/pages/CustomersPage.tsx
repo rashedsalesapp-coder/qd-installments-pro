@@ -4,23 +4,39 @@ import CustomerList from "@/components/customers/CustomerList";
 import CustomerForm from "@/components/customers/CustomerForm";
 import { Customer } from "@/lib/types";
 import { useToast } from "@/components/ui/use-toast";
-import { supabase } from "@/lib/supabaseClient";
+import { supabase } from "@/integrations/supabase/client";
 
 // --- Supabase API Functions ---
 const getCustomers = async (): Promise<Customer[]> => {
     const { data, error } = await supabase.from('customers').select('*').order('created_at', { ascending: false });
     if (error) throw new Error(error.message);
-    return data as Customer[];
+    return data.map((customer: any) => ({
+        id: customer.id,
+        fullName: customer.fullname,
+        mobileNumber: customer.mobilenumber,
+        civilId: customer.civilid,
+        created_at: new Date(customer.created_at),
+    }));
 };
 
 const addCustomer = async (customer: Omit<Customer, 'id' | 'created_at' | 'updatedAt'>): Promise<any> => {
-    const { data, error } = await supabase.from('customers').insert([customer]).select();
+    const customerData = {
+        fullname: customer.fullName,
+        mobilenumber: customer.mobileNumber,
+        civilid: customer.civilId,
+    };
+    const { data, error } = await supabase.from('customers').insert([customerData]).select();
     if (error) throw new Error(error.message);
     return data;
 };
 
 const updateCustomer = async (customer: Partial<Customer>): Promise<any> => {
-    const { id, ...updateData } = customer;
+    const { id, fullName, mobileNumber, civilId, ...rest } = customer;
+    const updateData: any = { ...rest };
+    if (fullName) updateData.fullname = fullName;
+    if (mobileNumber) updateData.mobilenumber = mobileNumber;
+    if (civilId) updateData.civilid = civilId;
+    
     const { data, error } = await supabase.from('customers').update(updateData).eq('id', id);
     if (error) throw new Error(error.message);
     return data;
