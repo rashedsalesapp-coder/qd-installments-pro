@@ -81,11 +81,11 @@ const Dashboard = () => {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
-        <StatsCard title="إجمالي العملاء" value={stats.totalCustomers} icon={Users} />
-        <StatsCard title="المعاملات النشطة" value={stats.totalActiveTransactions} icon={Receipt} />
-        <StatsCard title="إجمالي الإيرادات" value={stats.totalRevenue} icon={TrendingUp} variant="success" isCurrency />
-        <StatsCard title="المبالغ المستحقة" value={stats.totalOutstanding} icon={DollarSign} variant="warning" isCurrency />
-        <StatsCard title="المتأخرات" value={stats.totalOverdue} icon={AlertTriangle} variant="danger" isCurrency />
+        <StatsCard title="إجمالي العملاء" value={stats.totalCustomers || 0} icon={Users} />
+        <StatsCard title="المعاملات النشطة" value={stats.totalActiveTransactions || 0} icon={Receipt} />
+        <StatsCard title="إجمالي الإيرادات" value={stats.totalRevenue || 0} icon={TrendingUp} variant="success" isCurrency />
+        <StatsCard title="المبالغ المستحقة" value={stats.totalOutstanding || 0} icon={DollarSign} variant="warning" isCurrency />
+        <StatsCard title="المتأخرات" value={stats.totalOverdue || 0} icon={AlertTriangle} variant="danger" isCurrency />
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
@@ -114,7 +114,7 @@ const Dashboard = () => {
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-muted-foreground">المعاملات المتأخرة</span>
-                <span className="font-semibold text-danger">{stats.overdueTransactions}</span>
+                <span className="font-semibold text-danger">{stats.overdueTransactions || 0}</span>
               </div>
             </div>
         </div>
