@@ -1,6 +1,7 @@
 import * as XLSX from 'xlsx';
 import { v4 as uuidv4 } from 'uuid';
 import { supabase } from './supabaseClient';
+import { formatPhoneNumber } from '@/lib/utils';
 
 
 
@@ -293,36 +294,34 @@ export const importData = async (
               : `تم استيراد ${importedCount} من المدفوعات بنجاح وتخطي ${jsonData.length - importedCount} صفوف بسبب الأخطاء:\n${errors.join('\n')}`
           });
         }
-        else {
-          // For other tables (customers), proceed with normal import
-          const mappedData = await Promise.all(jsonData.map(async row => {
+        } else if (config.tableName === 'customers') {
+          // For customers, we always generate a new UUID for the primary key.
+          // The user should map their legacy ID to the 'sequence_number' field.
+          const mappedData = jsonData.map(row => {
             const newRow: { [key: string]: any } = {
+              id: uuidv4(),
               created_at: new Date().toISOString()
             };
+
             for (const [sourceField, targetField] of Object.entries(config.mappings)) {
               if (row[sourceField] !== undefined) {
-                if (targetField === 'id') {
-                  const idValue = row[sourceField]?.toString();
-                  // If an ID is provided and it's a valid UUID, use it.
-                  // Otherwise, generate a new one.
-                  if (idValue && /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(idValue)) {
-                    newRow[targetField] = idValue;
+                // The 'id' field is already handled, so we skip any mapping to it from the UI.
+                if (targetField !== 'id') {
+                  if (targetField === 'mobile_number' || targetField === 'alternate_phone') {
+                    newRow[targetField] = formatPhoneNumber(row[sourceField]);
                   } else {
-                    newRow[targetField] = uuidv4();
+                    newRow[targetField] = row[sourceField];
                   }
-                } else {
-                  newRow[targetField] = row[sourceField];
                 }
               }
             }
             return newRow;
-          }));
+          });
 
           // Import to Supabase
-          const { data: result, error } = await supabase
+          const { error } = await supabase
             .from(config.tableName)
-            .insert(mappedData)
-            .select();
+            .insert(mappedData);
 
           if (error) throw error;
 

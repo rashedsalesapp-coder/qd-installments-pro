@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { formatPhoneNumber } from "@/lib/utils";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
@@ -36,7 +37,13 @@ const CustomerForm = ({ customer, onSave, onCancel, isLoading }: CustomerFormPro
       return;
     }
 
-    onSave(formData);
+    const formattedData = {
+      ...formData,
+      mobile_number: formatPhoneNumber(formData.mobile_number),
+      alternate_phone: formatPhoneNumber(formData.alternate_phone),
+    };
+
+    onSave(formattedData);
   };
 
   return (
