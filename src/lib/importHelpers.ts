@@ -293,7 +293,6 @@ export const importData = async (
               ? `تم استيراد ${importedCount} من المدفوعات بنجاح.`
               : `تم استيراد ${importedCount} من المدفوعات بنجاح وتخطي ${jsonData.length - importedCount} صفوف بسبب الأخطاء:\n${errors.join('\n')}`
           });
-        }
         } else if (config.tableName === 'customers') {
           // For customers, we always generate a new UUID for the primary key.
           // The user should map their legacy ID to the 'sequence_number' field.
