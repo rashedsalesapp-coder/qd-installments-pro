@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -37,10 +37,19 @@ const TransactionForm = ({ transaction, customers, onSave, onCancel, isLoading }
     number_of_installments: transaction?.number_of_installments || 12,
     installment_amount: transaction?.installment_amount || 0,
     cost_price: transaction?.cost_price || 0,
+    extra_price: transaction?.extra_price || 0,
+    notes: transaction?.notes || "",
     has_legal_case: transaction?.has_legal_case || false,
     legal_case_details: transaction?.legal_case_details || "",
     courtcollectiondata: transaction?.courtcollectiondata || {},
   });
+  const [totalAmount, setTotalAmount] = useState(0);
+
+  useEffect(() => {
+    const cost = Number(formData.cost_price) || 0;
+    const extra = Number(formData.extra_price) || 0;
+    setTotalAmount(cost + extra);
+  }, [formData.cost_price, formData.extra_price]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -53,16 +62,13 @@ const TransactionForm = ({ transaction, customers, onSave, onCancel, isLoading }
       return;
     }
 
-    // Calculate total amount based on installments
-    const amount = formData.installment_amount * formData.number_of_installments;
-
     // Convert dates to ISO string for Supabase
     const dataToSave = {
         ...formData,
         start_date: formData.start_date.toISOString().split('T')[0],
-        amount,
+        amount: totalAmount,
         // Set initial remaining balance to amount since no payments yet
-        remaining_balance: amount,
+        remaining_balance: totalAmount,
         status: 'active'
     };
     onSave(dataToSave);
@@ -157,6 +163,19 @@ const TransactionForm = ({ transaction, customers, onSave, onCancel, isLoading }
               <Label htmlFor="cost_price">سعر التكلفة *</Label>
               <Input type="number" step="0.001" value={formData.cost_price} onChange={(e) => setFormData({ ...formData, cost_price: +e.target.value })} disabled={isLoading} />
             </div>
+            <div>
+              <Label htmlFor="extra_price">السعر الاضافى</Label>
+              <Input type="number" step="0.001" value={formData.extra_price} onChange={(e) => setFormData({ ...formData, extra_price: +e.target.value })} disabled={isLoading} />
+            </div>
+            <div>
+              <Label>المبلغ الإجمالي</Label>
+              <Input type="text" value={`${totalAmount.toFixed(3)} د.ك.‏`} disabled readOnly className="font-bold text-blue-600" />
+            </div>
+          </div>
+
+          <div>
+            <Label htmlFor="notes">ملاحظات</Label>
+            <Textarea id="notes" value={formData.notes} onChange={(e) => setFormData({ ...formData, notes: e.target.value })} disabled={isLoading} />
           </div>
 
           <div className="border-t pt-4">

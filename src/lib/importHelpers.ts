@@ -328,6 +328,8 @@ export const importData = async (
             imported: mappedData.length,
             message: `تم استيراد ${mappedData.length} من السجلات بنجاح`
           });
+        } else {
+          reject(new Error(`نوع الجدول '${config.tableName}' غير مدعوم للاستيراد.`));
         }
       } catch (error: any) {
         reject(error);

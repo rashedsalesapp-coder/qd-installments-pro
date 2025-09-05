@@ -35,11 +35,13 @@ const getTransactions = async (): Promise<Transaction[]> => {
 
     if (error) throw new Error(error.message);
 
-    return data.map((t: any) => ({
-        ...t,
-        customerName: t.customers?.full_name || 'Unknown',
-        mobileNumber: t.customers?.mobile_number || '',
-    }));
+    return data.map((t: any) => {
+        const { customers, ...rest } = t;
+        return {
+            ...rest,
+            customer: customers,
+        };
+    });
 };
 
 const getCustomers = async (): Promise<Customer[]> => {
