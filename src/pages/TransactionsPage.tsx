@@ -35,13 +35,15 @@ const getTransactions = async (): Promise<Transaction[]> => {
 
     if (error) throw new Error(error.message);
 
-    return data.map((t: any) => {
+    const mappedData = data.map((t: any) => {
         const { customers, ...rest } = t;
         return {
             ...rest,
             customer: customers,
         };
     });
+
+    return { data: mappedData as Transaction[], count: count ?? 0 };
 };
 
 const getCustomers = async (): Promise<Customer[]> => {

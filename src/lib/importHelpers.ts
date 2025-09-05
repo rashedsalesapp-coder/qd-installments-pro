@@ -1,5 +1,4 @@
 import * as XLSX from 'xlsx';
-import { v4 as uuidv4 } from 'uuid';
 import { supabase } from './supabaseClient';
 
 
@@ -126,7 +125,6 @@ export const importData = async (
           jsonData.forEach((row, index) => {
             try {
               const newRow: { [key: string]: any } = {
-                id: uuidv4(),
                 created_at: new Date().toISOString(),
                 status: 'active',
                 has_legal_case: false
@@ -155,9 +153,9 @@ export const importData = async (
                     case 'cost_price':
                     case 'extra_price':
                     case 'installment_amount':
-                      const amount = Number(row[sourceField] || 0);
-                      if (isNaN(amount) || amount < 0) {
-                        throw new Error(`قيمة "${row[sourceField]}" غير صالحة في حقل ${targetField}`);
+                      const amount = Number(row[sourceField]);
+                      if (isNaN(amount) || amount <= 0) {
+                        throw new Error(`قيمة غير صالحة في حقل ${targetField}`);
                       }
                       newRow[targetField] = amount;
                       break;
@@ -217,105 +215,45 @@ export const importData = async (
               ? `تم استيراد ${validRows.length} من المعاملات بنجاح`
               : `تم استيراد ${validRows.length} من المعاملات بنجاح\nتم تخطي ${jsonData.length - validRows.length} صفوف بسبب الأخطاء:\n${errors.join('\n')}`
           });
-        } else if (config.tableName === 'payments') {
-          // For payments, we need to lookup transaction_id from sequence_number, then call record_payment RPC
-          const { data: transactions } = await supabase
-            .from('transactions')
-            .select('id, sequence_number');
-
-          if (!transactions) {
-            throw new Error('فشل في جلب بيانات المعاملات للتحقق');
-          }
-
-          const transactionMap = new Map(transactions.map(t => [t.sequence_number?.toString(), t.id]));
-
-          // Find which Excel headers are mapped to our required fields
-          const sourceHeaders: { [key: string]: string | undefined } = {
-            transaction: Object.keys(config.mappings).find(h => config.mappings[h] === 'transaction_id'),
-            amount: Object.keys(config.mappings).find(h => config.mappings[h] === 'amount'),
-            payment_date: Object.keys(config.mappings).find(h => config.mappings[h] === 'payment_date'),
-          };
-
-          if (!sourceHeaders.transaction || !sourceHeaders.amount || !sourceHeaders.payment_date) {
-            throw new Error('يرجى التأكد من ربط أعمدة رقم المعاملة, والمبلغ, وتاريخ الدفعة.');
-          }
-
-          let importedCount = 0;
-          const errors: string[] = [];
-
-          // Use a for...of loop to handle async operations correctly
-          for (const [index, row] of jsonData.entries()) {
-            try {
-              const transactionSequence = row[sourceHeaders.transaction!];
-              const p_transaction_id = transactionMap.get(transactionSequence?.toString());
-              const p_amount = Number(row[sourceHeaders.amount!]);
-              const p_payment_date = new Date(row[sourceHeaders.payment_date!]);
-
-              if (!p_transaction_id) {
-                throw new Error(`لم يتم العثور على معاملة برقم ${transactionSequence}`);
-              }
-              if (isNaN(p_amount) || p_amount <= 0) {
-                throw new Error('مبلغ الدفعة غير صالح');
-              }
-              if (isNaN(p_payment_date.getTime())) {
-                throw new Error('تاريخ الدفعة غير صالح');
-              }
-
-              const { error: rpcError } = await supabase.rpc('record_payment', {
-                p_transaction_id,
-                p_amount,
-                p_payment_date: p_payment_date.toISOString().split('T')[0],
-              });
-
-              if (rpcError) {
-                // Try to provide a more helpful error message
-                if (rpcError.message.includes('Payment amount exceeds remaining balance')) {
-                  throw new Error('مبلغ الدفعة يتجاوز الرصيد المتبقي.');
-                }
-                throw rpcError;
-              }
-
-              importedCount++;
-
-            } catch (rowError: any) {
-              errors.push(`خطأ في الصف ${index + 2}: ${rowError.message}`);
-            }
-          }
-
-          if (importedCount === 0 && jsonData.length > 0) {
-            throw new Error('لم يتم استيراد أي مدفوعات.\n' + errors.join('\n'));
-          }
-
-          resolve({
-            imported: importedCount,
-            message: importedCount === jsonData.length
-              ? `تم استيراد ${importedCount} من المدفوعات بنجاح.`
-              : `تم استيراد ${importedCount} من المدفوعات بنجاح وتخطي ${jsonData.length - importedCount} صفوف بسبب الأخطاء:\n${errors.join('\n')}`
-          });
-        } else if (config.tableName === 'customers') {
-          // For customers, we always generate a new UUID for the primary key.
-          // The user should map their legacy ID to the 'sequence_number' field.
-          const mappedData = jsonData.map(row => {
+        } else {
+          // For other tables, proceed with normal import
+          const mappedData = await Promise.all(jsonData.map(async row => {
             const newRow: { [key: string]: any } = {
-              id: uuidv4(),
               created_at: new Date().toISOString()
             };
-
             for (const [sourceField, targetField] of Object.entries(config.mappings)) {
               if (row[sourceField] !== undefined) {
-                // The 'id' field is already handled, so we skip any mapping to it from the UI.
-                if (targetField !== 'id') {
+                if (targetField === 'id') {
+                  // Convert the كود value to a UUID format if it's not already
+                  const idValue = row[sourceField].toString();
+                  try {
+                    // Check if it's already a valid UUID
+                    if (/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(idValue)) {
+                      newRow[targetField] = idValue;
+                    } else {
+                      // Generate a deterministic UUID from the ID value
+                      const namespace = '6ba7b810-9dad-11d1-80b4-00c04fd430c8'; // A fixed namespace UUID
+                      const { data: uuidData } = await supabase.rpc('gen_random_uuid');
+                      newRow[targetField] = uuidData;
+                    }
+                  } catch {
+                    // If there's any error, generate a random UUID
+                    const { data: uuidData } = await supabase.rpc('gen_random_uuid');
+                    newRow[targetField] = uuidData;
+                  }
+                } else {
                   newRow[targetField] = row[sourceField];
                 }
               }
             }
             return newRow;
-          });
+          }));
 
           // Import to Supabase
-          const { error } = await supabase
+          const { data: result, error } = await supabase
             .from(config.tableName)
-            .insert(mappedData);
+            .insert(mappedData)
+            .select();
 
           if (error) throw error;
 
@@ -323,8 +261,6 @@ export const importData = async (
             imported: mappedData.length,
             message: `تم استيراد ${mappedData.length} من السجلات بنجاح`
           });
-        } else {
-          reject(new Error(`نوع الجدول '${config.tableName}' غير مدعوم للاستيراد.`));
         }
       } catch (error: any) {
         reject(error);
@@ -367,9 +303,10 @@ export const TABLE_CONFIGS = {
   },
   payments: {
     name: 'المدفوعات',
-    requiredFields: ['transaction_id', 'amount', 'payment_date'],
+    requiredFields: ['transaction_id', 'customer_id', 'amount', 'payment_date'],
     fields: [
       { value: 'transaction_id', label: 'معرف المعاملة' },
+      { value: 'customer_id', label: 'معرف العميل' },
       { value: 'amount', label: 'المبلغ' },
       { value: 'payment_date', label: 'تاريخ الدفع' },
       { value: 'notes', label: 'ملاحظات' }

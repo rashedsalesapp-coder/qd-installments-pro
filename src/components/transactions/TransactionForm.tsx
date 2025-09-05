@@ -163,7 +163,7 @@ const TransactionForm = ({ transaction, customers, onSave, onCancel, isLoading }
               <Label htmlFor="cost_price">سعر التكلفة *</Label>
               <Input type="number" step="0.001" value={formData.cost_price} onChange={(e) => setFormData({ ...formData, cost_price: +e.target.value })} disabled={isLoading} />
             </div>
-            <div>
+             <div>
               <Label htmlFor="extra_price">السعر الاضافى</Label>
               <Input type="number" step="0.001" value={formData.extra_price} onChange={(e) => setFormData({ ...formData, extra_price: +e.target.value })} disabled={isLoading} />
             </div>

@@ -119,10 +119,7 @@ const DataImportPage = () => {
           <div className="grid gap-4">
             <div>
               <label className="text-sm font-medium mb-2 block">نوع البيانات</label>
-              <Select value={selectedTable} onValueChange={(value: keyof typeof TABLE_CONFIGS) => {
-                setSelectedTable(value);
-                setMapping({});
-              }}>
+              <Select value={selectedTable} onValueChange={(value: keyof typeof TABLE_CONFIGS) => setSelectedTable(value)}>
                 <SelectTrigger className="w-[200px]">
                   <SelectValue placeholder="اختر نوع البيانات" />
                 </SelectTrigger>

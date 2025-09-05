@@ -18,14 +18,11 @@ interface CustomerListProps {
 const CustomerList = ({ customers, onAddCustomer, onEditCustomer, onViewCustomer }: CustomerListProps) => {
   const [searchTerm, setSearchTerm] = useState("");
 
-  const filteredCustomers = customers.filter(customer => {
-    const term = searchTerm.toLowerCase();
-    return (
-      customer.full_name.toLowerCase().includes(term) ||
-      customer.mobile_number.includes(searchTerm) ||
-      (customer.civil_id || '').includes(searchTerm)
-    );
-  });
+  const filteredCustomers = customers.filter(customer =>
+    customer.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    customer.mobile_number.includes(searchTerm) ||
+    customer.civil_id.includes(searchTerm)
+  );
 
   return (
     <div className="space-y-6">

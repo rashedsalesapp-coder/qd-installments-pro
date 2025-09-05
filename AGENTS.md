@@ -1,34 +1,26 @@
 # Project Summary & Agent Instructions
 
-This document provides a summary of the "Installment Management System" project, its current state, and key information to help future development work.
+This document provides a summary of the "Installment Management System" project, its current state as of the end of our session, and a clear list of implemented vs. pending features to guide future work.
 
 ## 1. Application Overview
 
 - **Purpose:** A comprehensive, multi-user, online system for managing installment sales.
-- **Frontend:** Responsive, Arabic-language Single-Page Application (SPA).
-- **Tech Stack:** React, TypeScript, Vite, Tailwind CSS, shadcn/ui.
-- **Backend:** Supabase (PostgreSQL), including Database, Authentication, and Edge Functions.
+- **Tech Stack:** React, TypeScript, Vite, Supabase.
 
-## 2. Core Features (as of 2025-09-05)
+## 2. Work Completed in This Session
 
-### Implemented & Verified Features:
-- **Secure Authentication:** Full user login/logout system connected to Supabase Auth, with role-based access control (`admin`, `staff`) securing all data.
-- **Dashboard & Analytics:** A dynamic dashboard displaying key financial metrics.
-- **Customer Management:** Full CRUD capabilities with a robust search function.
-- **Transaction Management:** Full CRUD capabilities, including an enhanced form for manual entry.
-- **Payment Recording:** A secure system for recording payments against transactions.
-- **Data Import:** A robust data import system from Excel/CSV for Customers, Transactions, and Payments.
-  - **Key Workflow:** Handles mapping legacy IDs to the new system by using the `sequence_number` column.
-- **Reporting:** A feature to generate and download a monthly payment report in Excel (`.xlsx`) format with correct columns and references.
-- **Data Utilities:**
-  - An optional tool on the Settings page for bulk-adding a `+` prefix to all customer phone numbers.
+The following features and fixes were successfully implemented, and the code has been reset to this stable baseline:
 
-### Key Work Done in This Session:
-- **Security Overhaul:** Implemented strict, role-based Row Level Security (RLS) policies for all major tables (`customers`, `transactions`, `payments`, `audit_log`).
-- **Database Hardening:** Fixed all "Function Search Path Mutable" warnings and created a secure `audit_log` table.
-- **Data Import Fixes:** Completely rewrote the data import logic to be robust, handle legacy data, and provide clearer error messages.
-- **UI/UX Fixes:** Corrected numerous bugs, including a search crash, incorrect data display in lists, and broken UI components.
-- **Form Enhancements:** Improved the "Add New Transaction" form with missing fields and real-time calculations.
+- **Security Overhaul:** Implemented strict, role-based Row Level Security (RLS) for all tables.
+- **Database Hardening:** Fixed all "Function Search Path Mutable" warnings.
+- **Robust Data Import:** The data import system for Customers, Transactions, and Payments was completely fixed. It now correctly handles legacy IDs via the `sequence_number` column and provides clearer error messages.
+- **Core UI Bug Fixes:**
+  - Fixed a crash on the customer search page.
+  - Fixed an issue preventing customer names from displaying in the transaction list.
+  - Corrected the payment import mapping UI.
+- **Enhanced Transaction Form:** The form for adding new transactions was improved with `extra_price` and `notes` fields.
+- **New Payments Page:** A new page was created at `/payments` to display a list of all recorded payments.
+- **Manual Payment Form:** The modal form for adding new payments was verified and enhanced with a date picker and improved defaults.
 
 ## 3. Database & Connection Information
 
@@ -36,22 +28,26 @@ This document provides a summary of the "Installment Management System" project,
 - **Project URL:** `https://odeqbnntvogchzipniig.supabase.co`
 - **Project ID:** `odeqbnntvogchzipniig`
 - **Anon Key (Public):** `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9kZXFibm50dm9nY2h6aXBuaWlnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY5Mjc5OTgsImV4cCI6MjA3MjUwMzk5OH0.phWW0hNm-ujEEsngjhf88us4suJv9boQ_9uh7ADhTXQ`
-- **Database Schema:** The schema is managed via migration files in the `supabase/migrations` directory. The user's database may occasionally fall out of sync. If "column not found" errors occur, the necessary `ALTER TABLE` commands from the migration files must be provided to the user to run manually. After any manual schema change, the user **must** be instructed to click the **"Reload schema"** button in the Supabase Dashboard's API section.
+- **Critical Workflow:** For data import, the user's original ID **must** be mapped to the **`sequence_number`** field ("م العميل") to ensure relationships are created correctly.
 
-### Critical Data Import Workflow
+## 4. Pending & Future Work
 
-**This is the most important instruction for future work on this project.**
-The system is designed to migrate legacy data. When importing customers, the user **must** map their original ID column (e.g., "كود") to the **"م العميل" (`sequence_number`)** field in the UI. The system will generate a new UUID for the primary key (`id`) automatically. Subsequent imports (Transactions, Payments) rely on this `sequence_number` to correctly link back to the customer.
+The following features were requested or suggested but have **not** been implemented yet. They represent a good starting point for the next development task.
 
-## 4. Potential Future Work
+### Phase 1: List & Dashboard Enhancements (Immediate Next Steps)
+- **Pagination:** Add "Load More" style pagination to the Customer, Transaction, and Payment lists.
+- **Advanced Filtering & Sorting:** Add UI controls for backend-driven sorting and filtering (e.g., by date range on the transaction list).
+- **Clickable Dashboard Stats:** Make the main dashboard statistics (e.g., "Overdue") clickable, linking to pre-filtered lists.
 
-Based on the original project description, the following features have been requested but not yet implemented:
+### Phase 2: Core Application Improvements
+- **Dashboard Date Filter:** Add a global date range filter to the dashboard to view stats for specific periods.
+- **Customer Detail Page:** Create a full profile page for each customer showing their details and a history of all their transactions and payments.
+- **User-Friendly Error Messages:** Implement a system to translate raw database errors into clear, user-friendly Arabic messages.
+- **Audit Log UI:** Create a page to view and search the `audit_log` table.
 
-- **General Improvements:**
-  - Pagination for Customer and Transaction lists.
-  - Advanced filtering and sorting controls for lists.
-  - A system to translate raw database errors into user-friendly Arabic messages.
-- **Audit Log UI:** The `audit_log` table exists and is collecting data, but there is no UI to view or search the logs.
+### Phase 3: Major New Features
+- **Export to PDF:** Add a feature to export key documents (statements, receipts) as PDF files.
+- **User Role Management UI:** Create a settings page for admins to manage user roles.
 - **AI-Powered Features:**
   - Predictive Payment Reminders.
   - Customer Risk Scoring.
