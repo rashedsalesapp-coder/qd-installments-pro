@@ -17,18 +17,20 @@ interface CustomerFormProps {
 const CustomerForm = ({ customer, onSave, onCancel, isLoading }: CustomerFormProps) => {
   const { toast } = useToast();
   const [formData, setFormData] = useState({
-    fullName: customer?.fullName || '',
-    mobileNumber: customer?.mobileNumber || '',
-    civilId: customer?.civilId || '',
+    sequence_number: customer?.sequence_number || '',
+    full_name: customer?.full_name || '',
+    mobile_number: customer?.mobile_number || '',
+    alternate_phone: customer?.alternate_phone || '',
+    civil_id: customer?.civil_id || '',
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.fullName || !formData.mobileNumber || !formData.civilId) {
+    if (!formData.full_name || !formData.mobile_number) {
       toast({
         title: "خطأ",
-        description: "يرجى ملء جميع الحقول المطلوبة",
+        description: "يرجى ملء الحقول المطلوبة (الاسم الكامل ورقم الهاتف)",
         variant: "destructive",
       });
       return;
@@ -49,25 +51,24 @@ const CustomerForm = ({ customer, onSave, onCancel, isLoading }: CustomerFormPro
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="fullName">الاسم الكامل *</Label>
+              <Label htmlFor="sequenceNumber">م العميل</Label>
               <Input
-                id="fullName"
-                value={formData.fullName}
-                onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
-                placeholder="أدخل الاسم الكامل"
+                id="sequenceNumber"
+                value={formData.sequence_number}
+                onChange={(e) => setFormData({ ...formData, sequence_number: e.target.value })}
+                placeholder="رقم تسلسلي للعميل (سيتم إنشاؤه تلقائياً)"
                 className="text-right"
-                required
                 disabled={isLoading}
               />
             </div>
-            
+
             <div>
-              <Label htmlFor="mobileNumber">رقم الهاتف *</Label>
+              <Label htmlFor="fullName">الاسم الكامل *</Label>
               <Input
-                id="mobileNumber"
-                value={formData.mobileNumber}
-                onChange={(e) => setFormData({ ...formData, mobileNumber: e.target.value })}
-                placeholder="أدخل رقم الهاتف"
+                id="fullName"
+                value={formData.full_name}
+                onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
+                placeholder="أدخل الاسم الكامل"
                 className="text-right"
                 required
                 disabled={isLoading}
@@ -75,15 +76,41 @@ const CustomerForm = ({ customer, onSave, onCancel, isLoading }: CustomerFormPro
             </div>
           </div>
 
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="mobileNumber">رقم الهاتف *</Label>
+              <Input
+                id="mobileNumber"
+                value={formData.mobile_number}
+                onChange={(e) => setFormData({ ...formData, mobile_number: e.target.value })}
+                placeholder="أدخل رقم الهاتف"
+                className="text-right"
+                required
+                disabled={isLoading}
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="alternatePhone">رقم الهاتف2</Label>
+              <Input
+                id="alternatePhone"
+                value={formData.alternate_phone}
+                onChange={(e) => setFormData({ ...formData, alternate_phone: e.target.value })}
+                placeholder="أدخل رقم هاتف بديل"
+                className="text-right"
+                disabled={isLoading}
+              />
+            </div>
+          </div>
+
           <div>
-            <Label htmlFor="civilId">الرقم المدني *</Label>
+            <Label htmlFor="civilId">الرقم المدني</Label>
             <Input
               id="civilId"
-              value={formData.civilId}
-              onChange={(e) => setFormData({ ...formData, civilId: e.target.value })}
-              placeholder="أدخل الرقم المدني"
+              value={formData.civil_id}
+              onChange={(e) => setFormData({ ...formData, civil_id: e.target.value })}
+              placeholder="أدخل الرقم المدني (اختياري)"
               className="text-right"
-              required
               disabled={isLoading}
             />
           </div>

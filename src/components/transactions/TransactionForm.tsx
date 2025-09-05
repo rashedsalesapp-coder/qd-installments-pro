@@ -6,19 +6,19 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
 import { Transaction, Customer } from "@/lib/types";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+} from "@/components/ui/command";
+import { Check, ChevronsUpDown, Calendar as CalendarIcon, Save } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
-import { Calendar as CalendarIcon, Save } from "lucide-react";
-import { format } from "date-fns";
-import { cn } from "@/lib/utils";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
+import { cn } from "@/lib/utils";
+import { format } from "date-fns";
 
 interface TransactionFormProps {
   transaction?: Transaction;
@@ -31,19 +31,20 @@ interface TransactionFormProps {
 const TransactionForm = ({ transaction, customers, onSave, onCancel, isLoading }: TransactionFormProps) => {
   const { toast } = useToast();
   const [formData, setFormData] = useState({
-    customerid: transaction?.customerid || "",
-    transactiondate: transaction?.transactiondate ? new Date(transaction.transactiondate) : new Date(),
-    totalinstallments: transaction?.totalinstallments || 12,
-    installmentamount: transaction?.installmentamount || 0,
-    firstinstallmentdate: transaction?.firstinstallmentdate ? new Date(transaction.firstinstallmentdate) : new Date(),
-    legalcase: transaction?.legalcase || false,
-    legalcasedetails: transaction?.legalcasedetails || "",
-    courtcollectiondata: transaction?.courtcollectiondata || "",
+    customer_id: transaction?.customer_id || "",
+    sequence_number: transaction?.sequence_number || "",
+    start_date: transaction?.start_date ? new Date(transaction.start_date) : new Date(),
+    number_of_installments: transaction?.number_of_installments || 12,
+    installment_amount: transaction?.installment_amount || 0,
+    cost_price: transaction?.cost_price || 0,
+    has_legal_case: transaction?.has_legal_case || false,
+    legal_case_details: transaction?.legal_case_details || "",
+    courtcollectiondata: transaction?.courtcollectiondata || {},
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.customerid || !formData.transactiondate || !formData.totalinstallments || !formData.installmentamount) {
+    if (!formData.customer_id || !formData.start_date || !formData.number_of_installments || !formData.installment_amount || !formData.cost_price) {
       toast({
         title: "خطأ",
         description: "يرجى ملء جميع الحقول المطلوبة بشكل صحيح",
@@ -51,11 +52,18 @@ const TransactionForm = ({ transaction, customers, onSave, onCancel, isLoading }
       });
       return;
     }
+
+    // Calculate total amount based on installments
+    const amount = formData.installment_amount * formData.number_of_installments;
+
     // Convert dates to ISO string for Supabase
     const dataToSave = {
         ...formData,
-        transactiondate: formData.transactiondate.toISOString().split('T')[0],
-        firstinstallmentdate: formData.firstinstallmentdate.toISOString().split('T')[0],
+        start_date: formData.start_date.toISOString().split('T')[0],
+        amount,
+        // Set initial remaining balance to amount since no payments yet
+        remaining_balance: amount,
+        status: 'active'
     };
     onSave(dataToSave);
   };
@@ -69,79 +77,118 @@ const TransactionForm = ({ transaction, customers, onSave, onCancel, isLoading }
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="customerId">العميل *</Label>
-              <Select
-                value={formData.customerid}
-                onValueChange={(value) => setFormData({ ...formData, customerid: value })}
-                disabled={isLoading || !!transaction}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="اختر العميل" />
-                </SelectTrigger>
-                <SelectContent>
-                  {customers.map((customer) => (
-                    <SelectItem key={customer.id} value={customer.id}>
-                      {customer.fullName}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Label htmlFor="sequence_number">رقم المعاملة</Label>
+              <Input
+                id="sequence_number"
+                value={formData.sequence_number}
+                onChange={(e) => setFormData({ ...formData, sequence_number: e.target.value })}
+                disabled={isLoading}
+                placeholder="سيتم إنشاؤه تلقائياً"
+              />
             </div>
             <div>
-              <Label htmlFor="transactionDate">تاريخ المعاملة *</Label>
+              <Label htmlFor="customer">العميل *</Label>
               <Popover>
                 <PopoverTrigger asChild>
-                  <Button variant={"outline"} className={cn("w-full justify-start text-right font-normal")} disabled={isLoading}>
-                    <CalendarIcon className="ml-2 h-4 w-4" />
-                    {format(formData.transactiondate, "PPP")}
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={true}
+                    className="w-full justify-between"
+                    disabled={isLoading || !!transaction}
+                  >
+                    {formData.customer_id ? customers.find((customer) => customer.id === formData.customer_id)?.full_name : "اختر العميل"}
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
-                  <Calendar mode="single" selected={formData.transactiondate} onSelect={(d) => d && setFormData({...formData, transactiondate: d})} initialFocus />
+                <PopoverContent className="w-full p-0" align="start">
+                  <Command>
+                    <CommandInput placeholder="ابحث عن العميل..." />
+                    <CommandEmpty>لم يتم العثور على عملاء</CommandEmpty>
+                    <CommandGroup className="max-h-60 overflow-auto">
+                      {customers.map((customer) => (
+                        <CommandItem
+                          key={customer.id}
+                          value={customer.id}
+                          onSelect={() => {
+                            setFormData({ ...formData, customer_id: customer.id });
+                          }}
+                        >
+                          <Check
+                            className={cn(
+                              "mr-2 h-4 w-4",
+                              formData.customer_id === customer.id ? "opacity-100" : "opacity-0"
+                            )}
+                          />
+                          {customer.full_name}
+                          <span className="ml-2 text-muted-foreground">
+                            {customer.mobile_number} (رقم العميل: {customers.find(c => c.id === customer.id)?.sequence_number})
+                          </span>
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </Command>
                 </PopoverContent>
               </Popover>
             </div>
             <div>
-              <Label htmlFor="totalInstallments">عدد الأقساط *</Label>
-              <Input type="number" value={formData.totalinstallments} onChange={(e) => setFormData({ ...formData, totalinstallments: +e.target.value })} disabled={isLoading} />
-            </div>
-            <div>
-              <Label htmlFor="installmentAmount">مبلغ القسط الشهري *</Label>
-              <Input type="number" step="0.001" value={formData.installmentamount} onChange={(e) => setFormData({ ...formData, installmentamount: +e.target.value })} disabled={isLoading} />
-            </div>
-            <div>
-              <Label htmlFor="firstInstallmentDueDate">تاريخ أول قسط *</Label>
+              <Label htmlFor="start_date">تاريخ المعاملة *</Label>
               <Popover>
                 <PopoverTrigger asChild>
                   <Button variant={"outline"} className={cn("w-full justify-start text-right font-normal")} disabled={isLoading}>
                     <CalendarIcon className="ml-2 h-4 w-4" />
-                    {format(formData.firstinstallmentdate, "PPP")}
+                    {format(formData.start_date, "PPP")}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0">
-                  <Calendar mode="single" selected={formData.firstinstallmentdate} onSelect={(d) => d && setFormData({...formData, firstinstallmentdate: d})} initialFocus />
+                  <Calendar mode="single" selected={formData.start_date} onSelect={(d) => d && setFormData({...formData, start_date: d})} initialFocus />
                 </PopoverContent>
               </Popover>
+            </div>
+            <div>
+              <Label htmlFor="number_of_installments">عدد الأقساط *</Label>
+              <Input type="number" value={formData.number_of_installments} onChange={(e) => setFormData({ ...formData, number_of_installments: +e.target.value })} disabled={isLoading} />
+            </div>
+            <div>
+              <Label htmlFor="installment_amount">مبلغ القسط الشهري *</Label>
+              <Input type="number" step="0.001" value={formData.installment_amount} onChange={(e) => setFormData({ ...formData, installment_amount: +e.target.value })} disabled={isLoading} />
+            </div>
+            <div>
+              <Label htmlFor="cost_price">سعر التكلفة *</Label>
+              <Input type="number" step="0.001" value={formData.cost_price} onChange={(e) => setFormData({ ...formData, cost_price: +e.target.value })} disabled={isLoading} />
             </div>
           </div>
 
           <div className="border-t pt-4">
             <h3 className="text-lg font-semibold mb-2">إجراءات قانونية</h3>
             <div className="flex items-center space-x-2">
-              <Switch id="legal-case" checked={formData.legalcase} onCheckedChange={(checked) => setFormData({ ...formData, legalcase: checked })} disabled={isLoading} />
+              <Switch id="legal-case" checked={formData.has_legal_case} onCheckedChange={(checked) => setFormData({ ...formData, has_legal_case: checked })} disabled={isLoading} />
               <Label htmlFor="legal-case">تم رفع قضية قانونية</Label>
             </div>
           </div>
 
-          {formData.legalcase && (
+          {formData.has_legal_case && (
             <div className="space-y-4">
               <div>
-                <Label htmlFor="legalCaseDetails">تفاصيل القضية</Label>
-                <Textarea id="legalCaseDetails" value={formData.legalcasedetails} onChange={(e) => setFormData({ ...formData, legalcasedetails: e.target.value })} disabled={isLoading} />
+                <Label htmlFor="legal_case_details">تفاصيل القضية</Label>
+                <Textarea id="legal_case_details" value={formData.legal_case_details} onChange={(e) => setFormData({ ...formData, legal_case_details: e.target.value })} disabled={isLoading} />
               </div>
               <div>
                 <Label htmlFor="courtCollectionData">بيانات تحصيل المحكمة</Label>
-                <Textarea id="courtCollectionData" value={formData.courtcollectiondata} onChange={(e) => setFormData({ ...formData, courtcollectiondata: e.target.value })} disabled={isLoading} />
+                <Textarea 
+                  id="courtCollectionData" 
+                  value={JSON.stringify(formData.courtcollectiondata || {}, null, 2)} 
+                  onChange={(e) => {
+                    try {
+                      const json = JSON.parse(e.target.value);
+                      setFormData({ ...formData, courtcollectiondata: json });
+                    } catch {
+                      // If invalid JSON, keep the text as is
+                      setFormData({ ...formData, courtcollectiondata: {} });
+                    }
+                  }} 
+                  disabled={isLoading} 
+                />
               </div>
             </div>
           )}

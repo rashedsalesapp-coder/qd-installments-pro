@@ -39,53 +39,62 @@ export interface ChatbotResponse {
 
 export interface Customer {
   id: string;
-  fullName: string;
-  mobileNumber: string;
-  civilId: string;
+  sequence_number: string;
+  full_name: string;
+  mobile_number: string;
+  alternate_phone?: string;
+  civil_id?: string;
   created_at: Date;
 }
 
 export interface Transaction {
   id: string;
-  customerid: string;
-  customerName?: string;
-  mobileNumber?: string;
-  transactiondate: Date;
-  totalinstallments: number;
-  installmentamount: number;
-  firstinstallmentdate: Date;
-  totalamount: number;
-  amountpaid: number;
-  remainingbalance: number;
-  overdueinstallments: number;
-  overdueamount: number;
-  legalcase: boolean;
-  legalcasedetails?: string;
-  courtcollectiondata?: string;
-  documents?: any;
+  sequence_number: string;
+  customer_id: string;
+  cost_price: number;     // سعر السلعة
+  extra_price: number;    // السعر الاضافى
+  amount: number;         // إجمالي السعر = سعر السلعة + السعر الاضافى
+  profit: number;         // الربح = السعر الاضافى
+  installment_amount: number;
+  start_date: Date;
+  number_of_installments: number;
+  remaining_balance: number;
+  status: 'active' | 'completed' | 'overdue' | 'legal';
+  has_legal_case: boolean;
+  legal_case_details?: string;
+  notes?: string;
+  courtcollectiondata?: {
+    [key: string]: any;
+  };
   created_at: Date;
+  // Joined fields
+  customer?: Customer;
 }
 
 export interface Payment {
   id: string;
-  transactionId: string;
-  customerId: string;
+  transaction_id: string;
+  customer_id: string;
   amount: number;
-  paymentDate: Date;
-  balanceBefore: number;
-  balanceAfter: number;
-  proofDocument?: string;
+  payment_date: Date;
+  balance_before: number;
+  balance_after: number;
   notes?: string;
-  createdAt: Date;
+  created_at: Date;
+  // Joined fields
+  transaction?: Transaction;
+  customer?: Customer;
 }
 
 export interface DashboardStats {
-  totalCustomers: number;
-  totalActiveTransactions: number;
-  totalRevenue: number;
-  totalOutstanding: number;
-  totalOverdue: number;
-  overdueTransactions: number;
+  total_customers: number;
+  total_active_transactions: number;
+  total_revenue: number;
+  total_cost: number;
+  total_profit: number;
+  total_outstanding: number;
+  total_overdue: number;
+  overdue_transactions: number;
 }
 
 export type TransactionStatus = 'active' | 'completed' | 'overdue' | 'legal_case';

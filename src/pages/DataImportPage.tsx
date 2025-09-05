@@ -7,13 +7,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { readExcelFile, importData, TABLE_CONFIGS, ImportConfig } from '@/lib/importHelpers';
+import { DeleteDataDialog } from "@/components/data/DeleteDataDialog";
+import { readExcelFile, importData, deleteImportedData, TABLE_CONFIGS, ImportConfig } from '@/lib/importHelpers';
 
 const DataImportPage = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [file, setFile] = useState<File | null>(null);
   const [sheets, setSheets] = useState<string[]>([]);
+
   const [preview, setPreview] = useState<{ [sheet: string]: any[] }>({});
   const [selectedSheet, setSelectedSheet] = useState<string>('');
   const [selectedTable, setSelectedTable] = useState<keyof typeof TABLE_CONFIGS>('customers');
@@ -104,7 +106,10 @@ const DataImportPage = () => {
 
   return (
     <div className="container mx-auto p-6">
-      <h1 className="text-3xl font-bold mb-6">استيراد البيانات</h1>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold">استيراد البيانات</h1>
+        <DeleteDataDialog />
+      </div>
 
       <Card className="mb-6">
         <CardHeader>

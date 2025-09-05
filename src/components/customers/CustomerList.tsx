@@ -19,9 +19,9 @@ const CustomerList = ({ customers, onAddCustomer, onEditCustomer, onViewCustomer
   const [searchTerm, setSearchTerm] = useState("");
 
   const filteredCustomers = customers.filter(customer =>
-    customer.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    customer.mobileNumber.includes(searchTerm) ||
-    customer.civilId.includes(searchTerm)
+    customer.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    customer.mobile_number.includes(searchTerm) ||
+    customer.civil_id.includes(searchTerm)
   );
 
   return (
@@ -60,9 +60,10 @@ const CustomerList = ({ customers, onAddCustomer, onEditCustomer, onViewCustomer
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="text-right">رقم العميل</TableHead>
+                <TableHead className="text-right">م العميل</TableHead>
                 <TableHead className="text-right">الاسم الكامل</TableHead>
                 <TableHead className="text-right">رقم الهاتف</TableHead>
+                <TableHead className="text-right">رقم الهاتف2</TableHead>
                 <TableHead className="text-right">الرقم المدني</TableHead>
                 <TableHead className="text-right">تاريخ التسجيل</TableHead>
                 <TableHead className="text-right">الإجراءات</TableHead>
@@ -79,14 +80,15 @@ const CustomerList = ({ customers, onAddCustomer, onEditCustomer, onViewCustomer
                 filteredCustomers.map((customer) => (
                   <TableRow key={customer.id}>
                     <TableCell className="font-medium">
-                      <Badge variant="outline">{customer.id}</Badge>
+                      <Badge variant="outline">{customer.sequence_number}</Badge>
                     </TableCell>
                     <TableCell className="font-medium text-foreground">
-                      {customer.fullName}
+                      {customer.full_name}
                     </TableCell>
-                    <TableCell>{customer.mobileNumber}</TableCell>
-                    <TableCell>{customer.civilId}</TableCell>
-                    <TableCell>{formatArabicDate(customer.created_at)}</TableCell>
+                    <TableCell>{customer.mobile_number}</TableCell>
+                    <TableCell>{customer.alternate_phone || '-'}</TableCell>
+                    <TableCell>{customer.civil_id || '-'}</TableCell>
+                    <TableCell>{formatArabicDate(new Date(customer.created_at))}</TableCell>
                     <TableCell>
                       <div className="flex items-center space-x-reverse space-x-2">
                         <Button

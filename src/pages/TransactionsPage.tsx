@@ -12,15 +12,33 @@ import { formatCurrency } from "@/lib/utils-arabic";
 const getTransactions = async (): Promise<Transaction[]> => {
     const { data, error } = await supabase
         .from('transactions')
-        .select(`*, customers (fullName, mobileNumber)`)
-        .order('created_at', { ascending: false });
+        .select(`
+            id,
+            sequence_number,
+            customer_id,
+            cost_price,
+            extra_price,
+            amount,
+            profit,
+            installment_amount,
+            start_date,
+            number_of_installments,
+            remaining_balance,
+            status,
+            has_legal_case,
+            notes,
+            created_at,
+            customers (id, full_name, mobile_number)
+        `)
+        .order('created_at', { ascending: false })
+        .limit(50); // Limit to latest 50 transactions for better performance
 
     if (error) throw new Error(error.message);
 
     return data.map((t: any) => ({
         ...t,
-        customerName: t.customers?.fullName || 'Unknown',
-        mobileNumber: t.customers?.mobileNumber || '',
+        customerName: t.customers?.full_name || 'Unknown',
+        mobileNumber: t.customers?.mobile_number || '',
     }));
 };
 

@@ -49,7 +49,8 @@ const StatsCard = ({ title, value, icon: Icon, variant = 'default', isCurrency =
       </CardHeader>
       <CardContent>
         <div className="text-2xl font-bold text-foreground">
-          {isCurrency ? formatKWD(value) : value.toLocaleString('ar-KW')}
+          {value === undefined || value === null ? '-' : 
+            isCurrency ? formatKWD(value) : value.toLocaleString('ar-KW')}
         </div>
       </CardContent>
     </Card>

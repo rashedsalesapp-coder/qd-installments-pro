@@ -30,13 +30,13 @@ const TransactionList = ({
   onSendReminder,
 }: TransactionListProps) => {
   const getStatusBadge = (transaction: Transaction) => {
-    if (transaction.legalcase) {
+    if (transaction.has_legal_case) {
       return <Badge variant="destructive">قضية قانونية</Badge>;
     }
-    if (transaction.remainingbalance <= 0) {
+    if (transaction.remaining_balance <= 0) {
       return <Badge className="bg-green-600">مكتملة</Badge>;
     }
-    if (transaction.overdueamount > 0) {
+    if (transaction.status === 'overdue') {
       return <Badge variant="secondary">متأخرة</Badge>;
     }
     return <Badge variant="secondary">نشطة</Badge>;
@@ -51,6 +51,7 @@ const TransactionList = ({
       <Table>
         <TableHeader>
           <TableRow>
+            <TableHead>رقم المعاملة</TableHead>
             <TableHead>العميل</TableHead>
             <TableHead>المبلغ الإجمالي</TableHead>
             <TableHead>المبلغ المتبقي</TableHead>
@@ -62,14 +63,15 @@ const TransactionList = ({
         <TableBody>
           {transactions.map((transaction) => (
             <TableRow key={transaction.id}>
-              <TableCell>{transaction.customerName}</TableCell>
-              <TableCell>{formatCurrency(transaction.totalamount)}</TableCell>
-              <TableCell>{formatCurrency(transaction.remainingbalance)}</TableCell>
+              <TableCell>{transaction.sequence_number}</TableCell>
+              <TableCell>{transaction.customer?.full_name}</TableCell>
+              <TableCell>{formatCurrency(transaction.amount)}</TableCell>
+              <TableCell>{formatCurrency(transaction.remaining_balance)}</TableCell>
               <TableCell>{getStatusBadge(transaction)}</TableCell>
               <TableCell>{formatDate(new Date(transaction.created_at))}</TableCell>
               <TableCell>
                 <div className="flex items-center gap-1">
-                  {transaction.overdueamount > 0 && (
+                  {transaction.status === 'overdue' && (
                     <Button variant="ghost" size="icon" onClick={() => onSendReminder(transaction)} title="إرسال تذكير واتساب">
                         <MessageCircle className="h-4 w-4 text-blue-600" />
                     </Button>

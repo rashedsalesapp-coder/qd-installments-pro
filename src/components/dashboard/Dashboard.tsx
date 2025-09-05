@@ -44,7 +44,12 @@ const Dashboard = () => {
   });
 
   const chartData = [
-    { name: 'المالية', 'إجمالي الإيرادات': stats?.totalRevenue || 0, 'المبالغ المستحقة': stats?.totalOutstanding || 0 },
+    { 
+      name: 'المالية', 
+      'إجمالي الإيرادات': stats?.total_revenue || 0, 
+      'إجمالي الأرباح': stats?.total_profit || 0,
+      'المبالغ المستحقة': stats?.total_outstanding || 0 
+    },
   ];
 
   if (isLoading) {
@@ -80,12 +85,13 @@ const Dashboard = () => {
         </Button>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
-        <StatsCard title="إجمالي العملاء" value={stats.totalCustomers} icon={Users} />
-        <StatsCard title="المعاملات النشطة" value={stats.totalActiveTransactions} icon={Receipt} />
-        <StatsCard title="إجمالي الإيرادات" value={stats.totalRevenue} icon={TrendingUp} variant="success" isCurrency />
-        <StatsCard title="المبالغ المستحقة" value={stats.totalOutstanding} icon={DollarSign} variant="warning" isCurrency />
-        <StatsCard title="المتأخرات" value={stats.totalOverdue} icon={AlertTriangle} variant="danger" isCurrency />
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-6">
+        <StatsCard title="إجمالي العملاء" value={stats.total_customers} icon={Users} />
+        <StatsCard title="المعاملات النشطة" value={stats.total_active_transactions} icon={Receipt} />
+        <StatsCard title="إجمالي الإيرادات" value={stats.total_revenue} icon={TrendingUp} variant="success" isCurrency />
+        <StatsCard title="إجمالي الأرباح" value={stats.total_profit} icon={TrendingUp} variant="success" isCurrency />
+        <StatsCard title="المبالغ المستحقة" value={stats.total_outstanding} icon={DollarSign} variant="warning" isCurrency />
+        <StatsCard title="المتأخرات" value={stats.total_overdue} icon={AlertTriangle} variant="danger" isCurrency />
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
@@ -98,6 +104,7 @@ const Dashboard = () => {
                     <Tooltip formatter={(value) => new Intl.NumberFormat('ar-KW', { style: 'currency', currency: 'KWD' }).format(value as number)} />
                     <Legend />
                     <Bar dataKey="إجمالي الإيرادات" fill="#16a34a" />
+                    <Bar dataKey="إجمالي الأرباح" fill="#0ea5e9" />
                     <Bar dataKey="المبالغ المستحقة" fill="#f97316" />
                 </BarChart>
             </ResponsiveContainer>
@@ -109,12 +116,12 @@ const Dashboard = () => {
               <div className="flex items-center justify-between">
                 <span className="text-muted-foreground">معدل التحصيل</span>
                 <span className="font-semibold text-success">
-                    {stats.totalRevenue > 0 ? `${(((stats.totalRevenue - stats.totalOutstanding) / stats.totalRevenue) * 100).toFixed(1)}%` : 'N/A'}
+                    {stats.total_revenue > 0 ? `${(((stats.total_revenue - stats.total_outstanding) / stats.total_revenue) * 100).toFixed(1)}%` : 'N/A'}
                 </span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-muted-foreground">المعاملات المتأخرة</span>
-                <span className="font-semibold text-danger">{stats.overdueTransactions}</span>
+                <span className="font-semibold text-danger">{stats.overdue_transactions}</span>
               </div>
             </div>
         </div>
