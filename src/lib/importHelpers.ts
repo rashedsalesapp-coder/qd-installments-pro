@@ -367,10 +367,9 @@ export const TABLE_CONFIGS = {
   },
   payments: {
     name: 'المدفوعات',
-    requiredFields: ['transaction_id', 'customer_id', 'amount', 'payment_date'],
+    requiredFields: ['transaction_id', 'amount', 'payment_date'],
     fields: [
       { value: 'transaction_id', label: 'معرف المعاملة' },
-      { value: 'customer_id', label: 'معرف العميل' },
       { value: 'amount', label: 'المبلغ' },
       { value: 'payment_date', label: 'تاريخ الدفع' },
       { value: 'notes', label: 'ملاحظات' }
