@@ -70,8 +70,7 @@ const PaymentForm = ({ transaction, isOpen, onClose }: PaymentFormProps) => {
         <DialogHeader>
           <DialogTitle>تسجيل دفعة للمعاملة</DialogTitle>
           <DialogDescription>
-            العميل: غير محدد | المبلغ المتبقي: {formatCurrency(transaction.remaining_balance)}
-
+            العميل: {transaction.customer?.full_name || 'غير محدد'} | المبلغ المتبقي: {formatCurrency(transaction.remaining_balance)}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit}>
