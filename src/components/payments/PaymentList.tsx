@@ -4,25 +4,32 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Payment } from "@/lib/types";
 import { formatCurrency, formatArabicDate } from "@/lib/utils-arabic";
-import { ChevronsDown, Loader2 } from "lucide-react";
+import { ChevronsDown, Loader2, PlusCircle } from "lucide-react";
 
 interface PaymentListProps {
   payments: Payment[];
   onLoadMore: () => void;
   canLoadMore: boolean;
   isLoadingMore: boolean;
+  onAddPayment: () => void;
 }
 
-const PaymentList = ({ payments, onLoadMore, canLoadMore, isLoadingMore }: PaymentListProps) => {
+const PaymentList = ({ payments, onLoadMore, canLoadMore, isLoadingMore, onAddPayment }: PaymentListProps) => {
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-3xl font-bold tracking-tight text-foreground">
-          المدفوعات
-        </h2>
-        <p className="text-muted-foreground">
-          عرض جميع المدفوعات المسجلة في النظام.
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-3xl font-bold tracking-tight text-foreground">
+            المدفوعات
+          </h2>
+          <p className="text-muted-foreground">
+            عرض جميع المدفوعات المسجلة في النظام.
+          </p>
+        </div>
+        <Button onClick={onAddPayment} className="flex items-center space-x-reverse space-x-2">
+          <PlusCircle className="h-4 w-4" />
+          <span>إضافة دفعة جديدة</span>
+        </Button>
       </div>
       <Card className="shadow-card">
         <CardHeader>

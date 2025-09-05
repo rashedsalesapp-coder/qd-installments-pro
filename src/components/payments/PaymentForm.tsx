@@ -32,16 +32,17 @@ const recordPayment = async ({ transactionId, amount }: { transactionId: string;
     return { success: true };
 };
 
-const PaymentForm = ({ transaction, isOpen, onClose }: PaymentFormProps) => {
+export const PaymentForm = ({ transaction, isOpen, onClose }: PaymentFormProps) => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  const [amount, setAmount] = useState(transaction.remaining_balance || 0);
+  const [amount, setAmount] = useState(transaction.installment_amount || 0);
 
   const { mutate, isPending } = useMutation({
       mutationFn: recordPayment,
       onSuccess: () => {
           toast({ title: "تم تسجيل الدفعة بنجاح" });
           queryClient.invalidateQueries({ queryKey: ["transactions"] });
+          queryClient.invalidateQueries({ queryKey: ["payments"] });
           queryClient.invalidateQueries({ queryKey: ["dashboardStats"] });
           onClose();
       },
@@ -99,5 +100,3 @@ const PaymentForm = ({ transaction, isOpen, onClose }: PaymentFormProps) => {
     </Dialog>
   );
 };
-
-export default PaymentForm;
