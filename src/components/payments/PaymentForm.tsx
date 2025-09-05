@@ -35,7 +35,7 @@ const recordPayment = async ({ transactionId, amount }: { transactionId: string;
 const PaymentForm = ({ transaction, isOpen, onClose }: PaymentFormProps) => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  const [amount, setAmount] = useState<number | ''>('');
+  const [amount, setAmount] = useState(transaction.remaining_balance || 0);
 
   const { mutate, isPending } = useMutation({
       mutationFn: recordPayment,
@@ -56,7 +56,7 @@ const PaymentForm = ({ transaction, isOpen, onClose }: PaymentFormProps) => {
       toast({ title: "خطأ", description: "يرجى إدخال مبلغ صحيح.", variant: "destructive" });
       return;
     }
-    if (amount > transaction.remainingbalance) {
+    if (amount > transaction.remaining_balance) {
       toast({ title: "خطأ", description: "المبلغ المدفوع أكبر من المبلغ المتبقي.", variant: "destructive" });
       return;
     }
@@ -70,7 +70,8 @@ const PaymentForm = ({ transaction, isOpen, onClose }: PaymentFormProps) => {
         <DialogHeader>
           <DialogTitle>تسجيل دفعة للمعاملة</DialogTitle>
           <DialogDescription>
-            العميل: {transaction.customerName} | المبلغ المتبقي: {formatCurrency(transaction.remainingbalance)}
+            العميل: غير محدد | المبلغ المتبقي: {formatCurrency(transaction.remaining_balance)}
+
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit}>
@@ -82,7 +83,7 @@ const PaymentForm = ({ transaction, isOpen, onClose }: PaymentFormProps) => {
                 type="number"
                 step="0.001"
                 value={amount}
-                onChange={(e) => setAmount(e.target.value === '' ? '' : Number(e.target.value))}
+                onChange={(e) => setAmount(e.target.value === '' ? 0 : Number(e.target.value))}
                 className="col-span-3"
                 required
               />

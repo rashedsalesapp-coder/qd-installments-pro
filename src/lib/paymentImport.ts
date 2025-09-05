@@ -74,14 +74,15 @@ export async function mapAndImportPayments(
 
     // Add payment to the list
     payments.push({
+      id: crypto.randomUUID(),
       transaction_id: transaction.id,
-      customer_id,
+      customer_id: customer_id as string,
       amount,
-      payment_date,
+      payment_date: new Date(payment_date),
       balance_before,
       balance_after,
       notes,
-      created_at: new Date().toISOString()
+      created_at: new Date()
     } as Payment);
 
     // Update the transaction's remaining balance in our local map

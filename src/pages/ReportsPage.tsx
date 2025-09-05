@@ -10,16 +10,16 @@ import { supabase } from '@/lib/supabaseClient';
 const getReportableTransactions = async (): Promise<Transaction[]> => {
     const { data, error } = await supabase
         .from('transactions')
-        .select(`*, customers (fullName, mobileNumber)`)
-        .gt('remainingBalance', 0)
-        .eq('legalCase', false);
+        .select(`*, customers (full_name, mobile_number)`)
+        .gt('remaining_balance', 0)
+        .eq('has_legal_case', false);
 
     if (error) throw new Error(error.message);
 
     return data.map((t: any) => ({
         ...t,
-        customerName: t.customers?.fullName || 'Unknown',
-        mobileNumber: t.customers?.mobileNumber || '',
+        customerName: t.customers?.full_name || 'Unknown',
+        mobileNumber: t.customers?.mobile_number || '',
     }));
 };
 // --- End Supabase API Function ---
@@ -39,17 +39,17 @@ const ReportsPage = () => {
 
         const reportData = transactions.map(t => {
             const now = new Date();
-            const transactionDate = format(new Date(t.transactiondate), 'yyyy-MM-dd');
-            const mobileNumber = t.mobileNumber || '';
+            const transactionDate = format(new Date(t.created_at), 'yyyy-MM-dd');
+            const mobileNumber = '';
             const dueDate = format(setDate(now, 20), 'dd/MM/yyyy');
             const expiryDate = format(addMonths(now, 2), 'yyyy-MM-dd');
 
-            const installmentNumber = (t.totalinstallments - Math.floor(t.remainingbalance / t.installmentamount)) + 1;
+            const installmentNumber = (t.number_of_installments - Math.floor(t.remaining_balance / t.installment_amount)) + 1;
 
             return {
-                description: `${t.id.substring(0, 8)} - ${transactionDate} - ${t.installmentamount}`,
-                amount: t.installmentamount,
-                firstName: t.customerName,
+                description: `${t.id.substring(0, 8)} - ${transactionDate} - ${t.installment_amount}`,
+                amount: t.installment_amount,
+                firstName: 'غير محدد',
                 lastName: '',
                 emailAddress: 'email@mail.com',
                 mobileNumber: mobileNumber.startsWith('965') ? mobileNumber : `965${mobileNumber}`,

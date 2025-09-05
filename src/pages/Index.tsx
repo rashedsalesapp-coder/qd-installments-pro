@@ -8,17 +8,19 @@ import { Customer } from "@/lib/types";
 // Sample data - in a real app, this would come from your database
 const sampleCustomers: Customer[] = [
   {
-    id: "CUS240001",
-    fullName: "أحمد محمد الخالد",
-    mobileNumber: "96599887766",
-    civilId: "289123456789",
+    id: "1",
+    sequence_number: "CUS240001",
+    full_name: "أحمد محمد الخالد",
+    mobile_number: "96599887766",
+    civil_id: "289123456789",
     created_at: new Date("2024-01-15"),
   },
   {
-    id: "CUS240002",
-    fullName: "فاطمة علي السالم",
-    mobileNumber: "96566778899",
-    civilId: "289987654321",
+    id: "2", 
+    sequence_number: "CUS240002",
+    full_name: "فاطمة علي السالم",
+    mobile_number: "96566778899",
+    civil_id: "289987654321",
     created_at: new Date("2024-02-10"),
   },
 ];

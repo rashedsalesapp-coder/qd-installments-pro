@@ -55,7 +55,7 @@ const addTransaction = async (transaction: Omit<Transaction, 'id' | 'created_at'
 };
 
 const updateTransaction = async (transaction: Partial<Transaction>): Promise<any> => {
-    const { id, customerName, mobileNumber, ...updateData } = transaction;
+    const { id, ...updateData } = transaction;
     const { data, error } = await supabase.from('transactions').update(updateData).eq('id', id);
     if (error) throw new Error(error.message);
     return data;
@@ -130,11 +130,11 @@ const TransactionsPage = () => {
     const handleSendReminder = (transaction: Transaction) => {
         const template = localStorage.getItem('whatsappMessageTemplate') || DEFAULT_MESSAGE_TEMPLATE;
         const message = template
-            .replace('[CustomerName]', transaction.customerName)
-            .replace('[Amount]', formatCurrency(transaction.installmentamount))
-            .replace('[Balance]', formatCurrency(transaction.remainingbalance));
+            .replace('[CustomerName]', 'عميل')
+            .replace('[Amount]', formatCurrency(transaction.installment_amount))
+            .replace('[Balance]', formatCurrency(transaction.remaining_balance));
 
-        const whatsappUrl = `https://wa.me/${transaction.mobileNumber}?text=${encodeURIComponent(message)}`;
+        const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
         window.open(whatsappUrl, '_blank');
     };
 

@@ -14,56 +14,159 @@ export type Database = {
   }
   public: {
     Tables: {
-      customers: {
+      audit_log: {
         Row: {
-          civilid: string | null
+          action: string
           created_at: string
-          fullname: string
-          id: string
-          mobilenumber: string | null
+          details: Json | null
+          id: number
+          user_id: string | null
         }
         Insert: {
-          civilid?: string | null
+          action: string
           created_at?: string
-          fullname: string
-          id?: string
-          mobilenumber?: string | null
+          details?: Json | null
+          id?: number
+          user_id?: string | null
         }
         Update: {
-          civilid?: string | null
+          action?: string
           created_at?: string
-          fullname?: string
+          details?: Json | null
+          id?: number
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      customer_risk_scores: {
+        Row: {
+          created_at: string
+          customer_id: string
+          factors: Json
+          id: string
+          score: number
+        }
+        Insert: {
+          created_at?: string
+          customer_id: string
+          factors?: Json
           id?: string
-          mobilenumber?: string | null
+          score: number
+        }
+        Update: {
+          created_at?: string
+          customer_id?: string
+          factors?: Json
+          id?: string
+          score?: number
+        }
+        Relationships: []
+      }
+      customers: {
+        Row: {
+          civil_id: string | null
+          created_at: string
+          full_name: string
+          id: string
+          mobile_number: string
+          mobile_number2: string | null
+          sequence_number: string | null
+        }
+        Insert: {
+          civil_id?: string | null
+          created_at?: string
+          full_name: string
+          id: string
+          mobile_number: string
+          mobile_number2?: string | null
+          sequence_number?: string | null
+        }
+        Update: {
+          civil_id?: string | null
+          created_at?: string
+          full_name?: string
+          id?: string
+          mobile_number?: string
+          mobile_number2?: string | null
+          sequence_number?: string | null
+        }
+        Relationships: []
+      }
+      payment_predictions: {
+        Row: {
+          created_at: string
+          customer_id: string
+          id: string
+          predicted_payment_date: string
+          probability: number
+          recommended_action: string
+          transaction_id: string
+        }
+        Insert: {
+          created_at?: string
+          customer_id: string
+          id?: string
+          predicted_payment_date: string
+          probability: number
+          recommended_action: string
+          transaction_id: string
+        }
+        Update: {
+          created_at?: string
+          customer_id?: string
+          id?: string
+          predicted_payment_date?: string
+          probability?: number
+          recommended_action?: string
+          transaction_id?: string
         }
         Relationships: []
       }
       payments: {
         Row: {
           amount: number
+          balance_after: number
+          balance_before: number
           created_at: string
+          customer_id: string
           id: string
-          proofofpayment: string | null
-          transactionid: string | null
+          notes: string | null
+          payment_date: string
+          transaction_id: string
         }
         Insert: {
           amount: number
+          balance_after: number
+          balance_before: number
           created_at?: string
+          customer_id: string
           id?: string
-          proofofpayment?: string | null
-          transactionid?: string | null
+          notes?: string | null
+          payment_date: string
+          transaction_id: string
         }
         Update: {
           amount?: number
+          balance_after?: number
+          balance_before?: number
           created_at?: string
+          customer_id?: string
           id?: string
-          proofofpayment?: string | null
-          transactionid?: string | null
+          notes?: string | null
+          payment_date?: string
+          transaction_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "payments_transactionid_fkey"
-            columns: ["transactionid"]
+            foreignKeyName: "payments_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_transaction_id_fkey"
+            columns: ["transaction_id"]
             isOneToOne: false
             referencedRelation: "transactions"
             referencedColumns: ["id"]
@@ -72,63 +175,57 @@ export type Database = {
       }
       transactions: {
         Row: {
-          amountpaid: number | null
-          courtcollectiondata: string | null
+          amount: number
+          cost_price: number
           created_at: string
-          customerid: string | null
-          documents: Json | null
-          firstinstallmentdate: string | null
+          customer_id: string
+          has_legal_case: boolean
           id: string
-          installmentamount: number | null
-          legalcase: boolean | null
-          legalcasedetails: string | null
-          overdueamount: number | null
-          overdueinstallments: number | null
-          remainingbalance: number | null
-          totalamount: number | null
-          totalinstallments: number | null
-          transactiondate: string | null
+          installment_amount: number
+          legal_case_details: string | null
+          notes: string | null
+          number_of_installments: number
+          profit: number | null
+          remaining_balance: number
+          start_date: string
+          status: string
         }
         Insert: {
-          amountpaid?: number | null
-          courtcollectiondata?: string | null
+          amount: number
+          cost_price: number
           created_at?: string
-          customerid?: string | null
-          documents?: Json | null
-          firstinstallmentdate?: string | null
+          customer_id: string
+          has_legal_case?: boolean
           id?: string
-          installmentamount?: number | null
-          legalcase?: boolean | null
-          legalcasedetails?: string | null
-          overdueamount?: number | null
-          overdueinstallments?: number | null
-          remainingbalance?: number | null
-          totalamount?: number | null
-          totalinstallments?: number | null
-          transactiondate?: string | null
+          installment_amount: number
+          legal_case_details?: string | null
+          notes?: string | null
+          number_of_installments: number
+          profit?: number | null
+          remaining_balance: number
+          start_date: string
+          status?: string
         }
         Update: {
-          amountpaid?: number | null
-          courtcollectiondata?: string | null
+          amount?: number
+          cost_price?: number
           created_at?: string
-          customerid?: string | null
-          documents?: Json | null
-          firstinstallmentdate?: string | null
+          customer_id?: string
+          has_legal_case?: boolean
           id?: string
-          installmentamount?: number | null
-          legalcase?: boolean | null
-          legalcasedetails?: string | null
-          overdueamount?: number | null
-          overdueinstallments?: number | null
-          remainingbalance?: number | null
-          totalamount?: number | null
-          totalinstallments?: number | null
-          transactiondate?: string | null
+          installment_amount?: number
+          legal_case_details?: string | null
+          notes?: string | null
+          number_of_installments?: number
+          profit?: number | null
+          remaining_balance?: number
+          start_date?: string
+          status?: string
         }
         Relationships: [
           {
-            foreignKeyName: "transactions_customerid_fkey"
-            columns: ["customerid"]
+            foreignKeyName: "transactions_customer_id_fkey"
+            columns: ["customer_id"]
             isOneToOne: false
             referencedRelation: "customers"
             referencedColumns: ["id"]
@@ -165,9 +262,26 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: string
       }
+      generate_customer_sequence: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
+      generate_transaction_sequence: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
       get_dashboard_stats: {
         Args: Record<PropertyKey, never>
-        Returns: Json
+        Returns: {
+          overdue_transactions: number
+          total_active_transactions: number
+          total_cost: number
+          total_customers: number
+          total_outstanding: number
+          total_overdue: number
+          total_profit: number
+          total_revenue: number
+        }[]
       }
       has_role: {
         Args: {
@@ -180,9 +294,37 @@ export type Database = {
         Args: { _user_id: string }
         Returns: boolean
       }
+      predict_late_payment: {
+        Args: { transaction_id_param: string }
+        Returns: {
+          created_at: string
+          customer_id: string
+          id: string
+          predicted_payment_date: string
+          probability: number
+          recommended_action: string
+          transaction_id: string
+        }
+      }
       record_payment: {
-        Args: { p_amount: number; p_transaction_id: string }
-        Returns: undefined
+        Args:
+          | {
+              p_amount: number
+              p_payment_date?: string
+              p_transaction_id: string
+            }
+          | { p_amount: number; p_transaction_id: string }
+        Returns: string
+      }
+      update_customer_risk_score: {
+        Args: { customer_id_param: string }
+        Returns: {
+          created_at: string
+          customer_id: string
+          factors: Json
+          id: string
+          score: number
+        }
       }
     }
     Enums: {
