@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import TransactionList from "@/components/transactions/TransactionList";
 import TransactionForm from "@/components/transactions/TransactionForm";
 import PaymentForm from "@/components/payments/PaymentForm";
@@ -8,9 +8,14 @@ import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/lib/supabaseClient";
 import { formatCurrency } from "@/lib/utils-arabic";
 
+const TRANSACTIONS_PER_PAGE = 25;
+
 // --- Supabase API Functions ---
-const getTransactions = async (): Promise<Transaction[]> => {
-    const { data, error } = await supabase
+const getTransactions = async ({ pageParam = 0 }): Promise<{ data: Transaction[], nextPage: number | null }> => {
+    const from = pageParam * TRANSACTIONS_PER_PAGE;
+    const to = from + TRANSACTIONS_PER_PAGE - 1;
+
+    const { data, error, count } = await supabase
         .from('transactions')
         .select(`
             id,
@@ -29,9 +34,9 @@ const getTransactions = async (): Promise<Transaction[]> => {
             notes,
             created_at,
             customers (id, full_name, mobile_number)
-        `)
+        `, { count: 'exact' })
         .order('created_at', { ascending: false })
-        .limit(50); // Limit to latest 50 transactions for better performance
+        .range(from, to);
 
     if (error) throw new Error(error.message);
 
@@ -43,7 +48,12 @@ const getTransactions = async (): Promise<Transaction[]> => {
         };
     });
 
-    return { data: mappedData as Transaction[], count: count ?? 0 };
+    const hasMore = count ? from + mappedData.length < count : false;
+
+    return {
+        data: mappedData as Transaction[],
+        nextPage: hasMore ? pageParam + 1 : null,
+    };
 };
 
 const getCustomers = async (): Promise<Customer[]> => {
@@ -82,10 +92,20 @@ const TransactionsPage = () => {
     const [editingTransaction, setEditingTransaction] = useState<Transaction | undefined>();
     const [paymentTransaction, setPaymentTransaction] = useState<Transaction | null>(null);
 
-    const { data: transactions, isLoading: isLoadingTransactions } = useQuery<Transaction[]>({
+    const {
+        data,
+        isLoading: isLoadingTransactions,
+        fetchNextPage,
+        hasNextPage,
+        isFetchingNextPage,
+    } = useInfiniteQuery({
         queryKey: ["transactions"],
         queryFn: getTransactions,
+        initialPageParam: 0,
+        getNextPageParam: (lastPage) => lastPage.nextPage,
     });
+
+    const transactions = data?.pages.flatMap(page => page.data) ?? [];
 
     const { data: customers, isLoading: isLoadingCustomers } = useQuery<Customer[]>({
         queryKey: ["customers"],
@@ -142,7 +162,7 @@ const TransactionsPage = () => {
         window.open(whatsappUrl, '_blank');
     };
 
-    if (isLoadingTransactions || isLoadingCustomers) return <div>جاري التحميل...</div>;
+    if ((isLoadingTransactions && !transactions.length) || isLoadingCustomers) return <div>جاري التحميل...</div>;
 
     return (
         <div>
@@ -160,7 +180,7 @@ const TransactionsPage = () => {
             ) : (
                 <>
                     <TransactionList
-                        transactions={transactions || []}
+                        transactions={transactions}
                         onAddTransaction={() => {
                             setEditingTransaction(undefined);
                             setShowForm(true);
@@ -172,6 +192,9 @@ const TransactionsPage = () => {
                         onDeleteTransaction={(id) => deleteMutation.mutate(id)}
                         onRecordPayment={(transaction) => setPaymentTransaction(transaction)}
                         onSendReminder={handleSendReminder}
+                        onLoadMore={fetchNextPage}
+                        canLoadMore={!!hasNextPage}
+                        isLoadingMore={isFetchingNextPage}
                     />
                     {paymentTransaction && (
                         <PaymentForm
