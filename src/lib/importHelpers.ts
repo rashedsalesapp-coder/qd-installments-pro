@@ -248,7 +248,6 @@ export const importData = async (
             }
             return newRow;
           }));
-          });
 
           // Import to Supabase
           const { data: result, error } = await supabase
