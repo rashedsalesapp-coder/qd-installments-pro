@@ -217,8 +217,84 @@ export const importData = async (
               ? `تم استيراد ${validRows.length} من المعاملات بنجاح`
               : `تم استيراد ${validRows.length} من المعاملات بنجاح\nتم تخطي ${jsonData.length - validRows.length} صفوف بسبب الأخطاء:\n${errors.join('\n')}`
           });
-        } else {
-          // For other tables, proceed with normal import
+        } else if (config.tableName === 'payments') {
+          // For payments, we need to lookup transaction_id from sequence_number, then call record_payment RPC
+          const { data: transactions } = await supabase
+            .from('transactions')
+            .select('id, sequence_number');
+
+          if (!transactions) {
+            throw new Error('فشل في جلب بيانات المعاملات للتحقق');
+          }
+
+          const transactionMap = new Map(transactions.map(t => [t.sequence_number?.toString(), t.id]));
+
+          // Find which Excel headers are mapped to our required fields
+          const sourceHeaders: { [key: string]: string | undefined } = {
+            transaction: Object.keys(config.mappings).find(h => config.mappings[h] === 'transaction_id'),
+            amount: Object.keys(config.mappings).find(h => config.mappings[h] === 'amount'),
+            payment_date: Object.keys(config.mappings).find(h => config.mappings[h] === 'payment_date'),
+          };
+
+          if (!sourceHeaders.transaction || !sourceHeaders.amount || !sourceHeaders.payment_date) {
+            throw new Error('يرجى التأكد من ربط أعمدة رقم المعاملة, والمبلغ, وتاريخ الدفعة.');
+          }
+
+          let importedCount = 0;
+          const errors: string[] = [];
+
+          // Use a for...of loop to handle async operations correctly
+          for (const [index, row] of jsonData.entries()) {
+            try {
+              const transactionSequence = row[sourceHeaders.transaction!];
+              const p_transaction_id = transactionMap.get(transactionSequence?.toString());
+              const p_amount = Number(row[sourceHeaders.amount!]);
+              const p_payment_date = new Date(row[sourceHeaders.payment_date!]);
+
+              if (!p_transaction_id) {
+                throw new Error(`لم يتم العثور على معاملة برقم ${transactionSequence}`);
+              }
+              if (isNaN(p_amount) || p_amount <= 0) {
+                throw new Error('مبلغ الدفعة غير صالح');
+              }
+              if (isNaN(p_payment_date.getTime())) {
+                throw new Error('تاريخ الدفعة غير صالح');
+              }
+
+              const { error: rpcError } = await supabase.rpc('record_payment', {
+                p_transaction_id,
+                p_amount,
+                p_payment_date: p_payment_date.toISOString().split('T')[0],
+              });
+
+              if (rpcError) {
+                // Try to provide a more helpful error message
+                if (rpcError.message.includes('Payment amount exceeds remaining balance')) {
+                  throw new Error('مبلغ الدفعة يتجاوز الرصيد المتبقي.');
+                }
+                throw rpcError;
+              }
+
+              importedCount++;
+
+            } catch (rowError: any) {
+              errors.push(`خطأ في الصف ${index + 2}: ${rowError.message}`);
+            }
+          }
+
+          if (importedCount === 0 && jsonData.length > 0) {
+            throw new Error('لم يتم استيراد أي مدفوعات.\n' + errors.join('\n'));
+          }
+
+          resolve({
+            imported: importedCount,
+            message: importedCount === jsonData.length
+              ? `تم استيراد ${importedCount} من المدفوعات بنجاح.`
+              : `تم استيراد ${importedCount} من المدفوعات بنجاح وتخطي ${jsonData.length - importedCount} صفوف بسبب الأخطاء:\n${errors.join('\n')}`
+          });
+        }
+        else {
+          // For other tables (customers), proceed with normal import
           const mappedData = await Promise.all(jsonData.map(async row => {
             const newRow: { [key: string]: any } = {
               created_at: new Date().toISOString()
