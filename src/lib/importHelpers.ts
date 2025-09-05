@@ -1,7 +1,6 @@
 import * as XLSX from 'xlsx';
 import { v4 as uuidv4 } from 'uuid';
 import { supabase } from './supabaseClient';
-import { formatPhoneNumber } from '@/lib/utils';
 
 
 
@@ -306,11 +305,7 @@ export const importData = async (
               if (row[sourceField] !== undefined) {
                 // The 'id' field is already handled, so we skip any mapping to it from the UI.
                 if (targetField !== 'id') {
-                  if (targetField === 'mobile_number' || targetField === 'alternate_phone') {
-                    newRow[targetField] = formatPhoneNumber(row[sourceField]);
-                  } else {
-                    newRow[targetField] = row[sourceField];
-                  }
+                  newRow[targetField] = row[sourceField];
                 }
               }
             }

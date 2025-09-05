@@ -10,7 +10,7 @@ import { supabase } from '@/lib/supabaseClient';
 const getReportableTransactions = async (): Promise<Transaction[]> => {
     const { data, error } = await supabase
         .from('transactions')
-        .select(`*, customers (full_name, mobile_number)`)
+        .select(`*, sequence_number, customers (full_name, mobile_number)`)
         .gt('remaining_balance', 0)
         .eq('has_legal_case', false);
 
@@ -40,23 +40,23 @@ const ReportsPage = () => {
         const reportData = transactions.map(t => {
             const now = new Date();
             const transactionDate = format(new Date(t.created_at), 'yyyy-MM-dd');
-            const mobileNumber = '';
+            const mobileNumber = t.customers?.mobile_number || '';
             const dueDate = format(setDate(now, 20), 'dd/MM/yyyy');
             const expiryDate = format(addMonths(now, 2), 'yyyy-MM-dd');
 
             const installmentNumber = (t.number_of_installments - Math.floor(t.remaining_balance / t.installment_amount)) + 1;
 
             return {
-                description: `${t.id.substring(0, 8)} - ${transactionDate} - ${t.installment_amount}`,
-                amount: t.installment_amount,
-                firstName: 'غير محدد',
-                lastName: '',
-                emailAddress: 'email@mail.com',
-                mobileNumber: mobileNumber.startsWith('965') ? mobileNumber : `965${mobileNumber}`,
-                dueDate: dueDate,
-                reference: t.id,
-                notes: `Installment ${installmentNumber}`,
-                expiry: expiryDate
+                'Description': `${t.sequence_number} - ${transactionDate} - ${t.installment_amount}`,
+                'Amount': t.installment_amount,
+                'First Name': t.customers?.full_name || 'غير محدد',
+                'Last Name': '',
+                'Email Address': 'email@mail.com',
+                'Mobile Number': mobileNumber.startsWith('+') ? mobileNumber : `+${mobileNumber}`,
+                'Due Date': dueDate,
+                'Reference': t.sequence_number,
+                'Notes': `Installment ${installmentNumber}`,
+                'Expiry': expiryDate
             };
         });
 
