@@ -1,4 +1,5 @@
 import * as XLSX from 'xlsx';
+import { v4 as uuidv4 } from 'uuid';
 import { supabase } from './supabaseClient';
 
 
@@ -125,6 +126,7 @@ export const importData = async (
           jsonData.forEach((row, index) => {
             try {
               const newRow: { [key: string]: any } = {
+                id: uuidv4(),
                 created_at: new Date().toISOString(),
                 status: 'active',
                 has_legal_case: false
@@ -224,22 +226,13 @@ export const importData = async (
             for (const [sourceField, targetField] of Object.entries(config.mappings)) {
               if (row[sourceField] !== undefined) {
                 if (targetField === 'id') {
-                  // Convert the كود value to a UUID format if it's not already
-                  const idValue = row[sourceField].toString();
-                  try {
-                    // Check if it's already a valid UUID
-                    if (/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(idValue)) {
-                      newRow[targetField] = idValue;
-                    } else {
-                      // Generate a deterministic UUID from the ID value
-                      const namespace = '6ba7b810-9dad-11d1-80b4-00c04fd430c8'; // A fixed namespace UUID
-                      const { data: uuidData } = await supabase.rpc('gen_random_uuid');
-                      newRow[targetField] = uuidData;
-                    }
-                  } catch {
-                    // If there's any error, generate a random UUID
-                    const { data: uuidData } = await supabase.rpc('gen_random_uuid');
-                    newRow[targetField] = uuidData;
+                  const idValue = row[sourceField]?.toString();
+                  // If an ID is provided and it's a valid UUID, use it.
+                  // Otherwise, generate a new one.
+                  if (idValue && /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(idValue)) {
+                    newRow[targetField] = idValue;
+                  } else {
+                    newRow[targetField] = uuidv4();
                   }
                 } else {
                   newRow[targetField] = row[sourceField];
