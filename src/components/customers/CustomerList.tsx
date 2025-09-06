@@ -13,19 +13,13 @@ interface CustomerListProps {
   onAddCustomer: () => void;
   onEditCustomer: (customer: Customer) => void;
   onViewCustomer: (customer: Customer) => void;
-  onLoadMore: () => void;
-  canLoadMore: boolean;
-  isLoadingMore: boolean;
 }
 
 const CustomerList = ({
   customers,
   onAddCustomer,
   onEditCustomer,
-  onViewCustomer,
-  onLoadMore,
-  canLoadMore,
-  isLoadingMore
+  onViewCustomer
 }: CustomerListProps) => {
   const [searchTerm, setSearchTerm] = useState("");
 
@@ -81,7 +75,7 @@ const CustomerList = ({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {customers.length === 0 && !isLoadingMore ? (
+              {customers.length === 0 ? (
                  <TableRow>
                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                      لم يتم العثور على عملاء.
@@ -130,23 +124,6 @@ const CustomerList = ({
             </TableBody>
           </Table>
         </CardContent>
-        {canLoadMore && (
-          <CardFooter className="flex justify-center">
-            <Button
-              onClick={onLoadMore}
-              disabled={isLoadingMore}
-              variant="outline"
-              className="flex items-center space-x-reverse space-x-2"
-            >
-              {isLoadingMore ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <ChevronsDown className="h-4 w-4" />
-              )}
-              <span>{isLoadingMore ? "جاري التحميل..." : "تحميل المزيد"}</span>
-            </Button>
-          </CardFooter>
-        )}
       </Card>
     </div>
   );
