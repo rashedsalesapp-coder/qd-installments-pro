@@ -14,20 +14,29 @@ const getCustomers = async ({ pageParam }: { pageParam: unknown }): Promise<{ da
     const from = page * CUSTOMERS_PER_PAGE;
     const to = from + CUSTOMERS_PER_PAGE - 1;
 
-    const { data, error, count } = await supabase
-        .from('customers')
-        .select('*', { count: 'exact' })
-        .order('created_at', { ascending: false })
-        .range(from, to);
+    try {
+        const { data, error, count } = await supabase
+            .from('customers')
+            .select('*', { count: 'exact' })
+            .order('created_at', { ascending: false })
+            .range(from, to);
 
-    if (error) throw new Error(error.message);
+        if (error) throw new Error(error.message);
 
-    const hasMore = count ? from + data.length < count : false;
+        const hasMore = count ? from + (data?.length || 0) < count : false;
 
-    return {
-        data: data as Customer[],
-        nextPage: hasMore ? page + 1 : null,
-    };
+        return {
+            data: (data as Customer[]) || [],
+            nextPage: hasMore ? page + 1 : null,
+        };
+    } catch (error) {
+        // Return safe default structure on error
+        console.error('Error fetching customers:', error);
+        return {
+            data: [],
+            nextPage: null,
+        };
+    }
 };
 
 
@@ -58,11 +67,14 @@ const CustomersPage = () => {
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
-  } = useInfiniteQuery<{ data: Customer[], nextPage: number | null }>({
+  } = useInfiniteQuery({
     queryKey: ["customers"],
     queryFn: getCustomers,
     initialPageParam: 0,
-    getNextPageParam: (lastPage) => lastPage.nextPage,
+    getNextPageParam: (lastPage) => {
+      // Add safety check to prevent undefined access
+      return lastPage?.nextPage ?? null;
+    },
   });
 
   const customers = data?.pages.flatMap(page => page.data) ?? [];
