@@ -9,8 +9,9 @@ import { supabase } from "@/lib/supabaseClient";
 const CUSTOMERS_PER_PAGE = 20;
 
 // --- Supabase API Functions ---
-const getCustomers = async ({ pageParam = 0 }): Promise<{ data: Customer[], nextPage: number | null }> => {
-    const from = pageParam * CUSTOMERS_PER_PAGE;
+const getCustomers = async ({ pageParam }: { pageParam: unknown }): Promise<{ data: Customer[], nextPage: number | null }> => {
+    const page = typeof pageParam === 'number' ? pageParam : 0;
+    const from = page * CUSTOMERS_PER_PAGE;
     const to = from + CUSTOMERS_PER_PAGE - 1;
 
     const { data, error, count } = await supabase
@@ -25,7 +26,7 @@ const getCustomers = async ({ pageParam = 0 }): Promise<{ data: Customer[], next
 
     return {
         data: data as Customer[],
-        nextPage: hasMore ? pageParam + 1 : null,
+        nextPage: hasMore ? page + 1 : null,
     };
 };
 

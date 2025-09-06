@@ -79,6 +79,7 @@ export interface Payment {
   payment_date: Date;
   balance_before: number;
   balance_after: number;
+  payment_method?: string;
   notes?: string;
   created_at: Date;
   // Joined fields

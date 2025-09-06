@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useInfiniteQuery, useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import TransactionList from "@/components/transactions/TransactionList";
 import TransactionForm from "@/components/transactions/TransactionForm";
-import PaymentForm from "@/components/payments/PaymentForm";
+import { PaymentForm } from "@/components/payments/PaymentForm";
 import { Transaction, Customer } from "@/lib/types";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/lib/supabaseClient";
