@@ -100,5 +100,3 @@ export const PaymentForm = ({ transaction, isOpen, onClose }: PaymentFormProps) 
     </Dialog>
   );
 };
-
-export default PaymentForm;

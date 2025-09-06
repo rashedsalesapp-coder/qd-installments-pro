@@ -1,6 +1,11 @@
 -- 1. Fix the get_dashboard_stats function to use snake_case keys for JSON.
 -- 2. Re-apply the corrected logic for check_overdue_transactions to fix the integer/interval division error.
 
+-- Drop existing functions before creating new versions to avoid return type conflicts.
+DROP FUNCTION IF EXISTS public.get_dashboard_stats();
+DROP FUNCTION IF EXISTS public.check_overdue_transactions();
+
+
 -- Fix get_dashboard_stats function
 CREATE OR REPLACE FUNCTION public.get_dashboard_stats()
  RETURNS json

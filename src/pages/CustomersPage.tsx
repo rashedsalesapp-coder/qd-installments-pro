@@ -5,39 +5,28 @@ import CustomerForm from "@/components/customers/CustomerForm";
 import { Customer } from "@/lib/types";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/lib/supabaseClient";
-import { useAuth } from "@/hooks/useAuth";
 
 const CUSTOMERS_PER_PAGE = 20;
 
 // --- Supabase API Functions ---
-const getCustomers = async ({ pageParam }: { pageParam: unknown }): Promise<{ data: Customer[], nextPage: number | null }> => {
-    const page = typeof pageParam === 'number' ? pageParam : 0;
-    const from = page * CUSTOMERS_PER_PAGE;
+const getCustomers = async ({ pageParam = 0 }): Promise<{ data: Customer[], nextPage: number | null }> => {
+    const from = pageParam * CUSTOMERS_PER_PAGE;
     const to = from + CUSTOMERS_PER_PAGE - 1;
 
-    try {
-        const { data, error, count } = await supabase
-            .from('customers')
-            .select('*', { count: 'exact' })
-            .order('created_at', { ascending: false })
-            .range(from, to);
+    const { data, error, count } = await supabase
+        .from('customers')
+        .select('*', { count: 'exact' })
+        .order('created_at', { ascending: false })
+        .range(from, to);
 
-        if (error) throw new Error(error.message);
+    if (error) throw new Error(error.message);
 
-        const hasMore = count ? from + (data?.length || 0) < count : false;
+    const hasMore = count ? from + data.length < count : false;
 
-        return {
-            data: (data as Customer[]) || [],
-            nextPage: hasMore ? page + 1 : null,
-        };
-    } catch (error) {
-        // Return safe default structure on error
-        console.error('Error fetching customers:', error);
-        return {
-            data: [],
-            nextPage: null,
-        };
-    }
+    return {
+        data: data as Customer[],
+        nextPage: hasMore ? pageParam + 1 : null,
+    };
 };
 
 
@@ -56,7 +45,6 @@ const updateCustomer = async (customer: Partial<Customer>): Promise<any> => {
 // --- End Supabase API Functions ---
 
 const CustomersPage = () => {
-  const { user, isLoading: authLoading } = useAuth();
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [showCustomerForm, setShowCustomerForm] = useState(false);
@@ -69,18 +57,11 @@ const CustomersPage = () => {
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
-  } = useInfiniteQuery({
+  } = useInfiniteQuery<{ data: Customer[], nextPage: number | null }>({
     queryKey: ["customers"],
     queryFn: getCustomers,
     initialPageParam: 0,
-    getNextPageParam: (lastPage) => {
-      // Add safety check to prevent undefined access
-      if (!lastPage || typeof lastPage.nextPage === 'undefined') {
-        return null;
-      }
-      return lastPage.nextPage;
-    },
-    enabled: !!user, // Only run query if user is authenticated
+    getNextPageParam: (lastPage) => lastPage.nextPage,
   });
 
   const customers = data?.pages.flatMap(page => page.data) ?? [];
@@ -133,8 +114,6 @@ const CustomersPage = () => {
     console.log("View customer:", customer);
   };
 
-  if (authLoading) return <div>جاري تحميل البيانات...</div>;
-  if (!user) return <div>يرجى تسجيل الدخول أولاً</div>;
   if (isLoading && !customers.length) return <div>جاري تحميل العملاء...</div>;
   if (isError) return <div>خطأ في تحميل العملاء</div>;
 
