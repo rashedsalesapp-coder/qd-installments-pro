@@ -79,7 +79,20 @@ const deleteTransaction = async (transactionId: string): Promise<any> => {
     const { data, error } = await supabase.from('transactions').delete().eq('id', transactionId);
     if (error) throw new Error(error.message);
     return data;
-}
+};
+
+const searchTransactions = async (searchTerm: string): Promise<Transaction[]> => {
+    const { data, error } = await supabase.rpc('search_transactions', {
+        p_search_term: searchTerm
+    });
+    if (error) throw new Error(error.message);
+    
+    // Map the returned data to match Transaction interface
+    return data.map((t: any) => ({
+        ...t,
+        customer: t.customer
+    })) as Transaction[];
+};
 // --- End Supabase API Functions ---
 
 const DEFAULT_MESSAGE_TEMPLATE = "عزيزي [CustomerName]،\nنود تذكيركم بأن قسطكم بمبلغ [Amount] دينار كويتي مستحق الدفع.\nالرصيد المتبقي: [Balance] دينار كويتي.\nشكرًا لتعاونكم.";
@@ -91,6 +104,8 @@ const TransactionsPage = () => {
     const [showForm, setShowForm] = useState(false);
     const [editingTransaction, setEditingTransaction] = useState<Transaction | undefined>();
     const [paymentTransaction, setPaymentTransaction] = useState<Transaction | null>(null);
+    const [searchTerm, setSearchTerm] = useState("");
+    const [isSearching, setIsSearching] = useState(false);
 
     const {
         data,
@@ -111,6 +126,16 @@ const TransactionsPage = () => {
         queryKey: ["customers"],
         queryFn: getCustomers,
     });
+
+    // Search query
+    const { data: searchResults, isLoading: isLoadingSearch } = useQuery<Transaction[]>({
+        queryKey: ["searchTransactions", searchTerm],
+        queryFn: () => searchTransactions(searchTerm),
+        enabled: searchTerm.length > 0,
+    });
+
+    // Use search results if searching, otherwise use regular transactions
+    const displayTransactions = searchTerm.length > 0 ? (searchResults ?? []) : transactions;
 
     const addMutation = useMutation({
         mutationFn: addTransaction,
@@ -180,7 +205,7 @@ const TransactionsPage = () => {
             ) : (
                 <>
                     <TransactionList
-                        transactions={transactions}
+                        transactions={displayTransactions}
                         onAddTransaction={() => {
                             setEditingTransaction(undefined);
                             setShowForm(true);
@@ -192,9 +217,12 @@ const TransactionsPage = () => {
                         onDeleteTransaction={(id) => deleteMutation.mutate(id)}
                         onRecordPayment={(transaction) => setPaymentTransaction(transaction)}
                         onSendReminder={handleSendReminder}
-                        onLoadMore={fetchNextPage}
-                        canLoadMore={!!hasNextPage}
-                        isLoadingMore={isFetchingNextPage}
+                        onLoadMore={searchTerm.length > 0 ? () => {} : fetchNextPage}
+                        canLoadMore={searchTerm.length > 0 ? false : !!hasNextPage}
+                        isLoadingMore={searchTerm.length > 0 ? isLoadingSearch : isFetchingNextPage}
+                        searchTerm={searchTerm}
+                        onSearchChange={setSearchTerm}
+                        isSearching={isLoadingSearch}
                     />
                     {paymentTransaction && (
                         <PaymentForm

@@ -9,9 +9,10 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { Transaction } from "@/lib/types";
 import { formatCurrency, formatArabicDate } from "@/lib/utils-arabic";
-import { Edit, Trash2, DollarSign, MessageCircle, ChevronsDown, Loader2, PlusCircle } from "lucide-react";
+import { Edit, Trash2, DollarSign, MessageCircle, ChevronsDown, Loader2, PlusCircle, Search } from "lucide-react";
 
 interface TransactionListProps {
   transactions: Transaction[];
@@ -23,6 +24,9 @@ interface TransactionListProps {
   onLoadMore: () => void;
   canLoadMore: boolean;
   isLoadingMore: boolean;
+  searchTerm: string;
+  onSearchChange: (term: string) => void;
+  isSearching: boolean;
 }
 
 const TransactionList = ({
@@ -35,6 +39,9 @@ const TransactionList = ({
   onLoadMore,
   canLoadMore,
   isLoadingMore,
+  searchTerm,
+  onSearchChange,
+  isSearching,
 }: TransactionListProps) => {
   const getStatusBadge = (transaction: Transaction) => {
     if (transaction.has_legal_case) {
@@ -68,7 +75,18 @@ const TransactionList = ({
       <Card className="shadow-card">
         <CardHeader>
            <CardTitle>قائمة المعاملات</CardTitle>
-           {/* TODO: Add filtering options here */}
+           <div className="flex items-center space-x-reverse space-x-2 mt-4">
+             <div className="relative flex-1 max-w-sm">
+               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+               <Input
+                 placeholder="البحث بالاسم أو رقم الهاتف أو رقم المعاملة..."
+                 value={searchTerm}
+                 onChange={(e) => onSearchChange(e.target.value)}
+                 className="pl-9"
+               />
+             </div>
+             {isSearching && <Loader2 className="h-4 w-4 animate-spin" />}
+           </div>
         </CardHeader>
         <CardContent>
           <Table>
@@ -84,10 +102,10 @@ const TransactionList = ({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {transactions.length === 0 && !isLoadingMore ? (
+              {transactions.length === 0 && !isLoadingMore && !isSearching ? (
                 <TableRow>
                   <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                    لم يتم العثور على معاملات.
+                    {searchTerm ? "لم يتم العثور على نتائج للبحث." : "لم يتم العثور على معاملات."}
                   </TableCell>
                 </TableRow>
               ) : (
