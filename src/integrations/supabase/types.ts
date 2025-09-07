@@ -310,13 +310,11 @@ export type Database = {
         }
       }
       record_payment: {
-        Args:
-          | {
-              p_amount: number
-              p_payment_date?: string
-              p_transaction_id: string
-            }
-          | { p_amount: number; p_transaction_id: string }
+        Args: {
+          p_amount: number
+          p_payment_date?: string
+          p_transaction_id: string
+        }
         Returns: string
       }
       search_transactions: {
