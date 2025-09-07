@@ -97,8 +97,8 @@ export async function getOverdueTransactionsNeedingAttention() {
     .from('payment_predictions')
     .select(`
       *,
-      transaction:transactions(*),
-      customer:customers(*)
+      transactions(*),
+      customers(*)
     `)
     .gt('probability', 0.4)
     .order('probability', { ascending: false });
@@ -113,7 +113,7 @@ export async function getHighRiskCustomers() {
     .from('customer_risk_scores')
     .select(`
       *,
-      customer:customers(*)
+      customers(*)
     `)
     .lt('score', 50)
     .order('score', { ascending: true });

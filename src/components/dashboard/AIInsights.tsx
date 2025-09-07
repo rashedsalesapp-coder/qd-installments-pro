@@ -54,7 +54,7 @@ const AIInsights = () => {
                   className="flex items-center justify-between border-b pb-2"
                 >
                   <div>
-                    <p className="font-medium">{score.customer.fullName}</p>
+                    <p className="font-medium">{score.customers.full_name}</p>
                     <p className="text-sm text-muted-foreground">
                       {score.factors.join('، ')}
                     </p>
@@ -94,7 +94,7 @@ const AIInsights = () => {
               <TableBody>
                 {overdueTransactions?.slice(0, 5).map((prediction) => (
                   <TableRow key={prediction.id}>
-                    <TableCell>{prediction.customer.fullName}</TableCell>
+                    <TableCell>{prediction.customers.full_name}</TableCell>
                     <TableCell>
                       <Badge variant={prediction.probability > 0.7 ? 'destructive' : 'secondary'}>
                         {Math.round(prediction.probability * 100)}%
