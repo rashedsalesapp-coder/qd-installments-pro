@@ -64,6 +64,7 @@ export type Database = {
       }
       customers: {
         Row: {
+          alternate_phone: string | null
           civil_id: string | null
           created_at: string
           full_name: string
@@ -73,6 +74,7 @@ export type Database = {
           sequence_number: string | null
         }
         Insert: {
+          alternate_phone?: string | null
           civil_id?: string | null
           created_at?: string
           full_name: string
@@ -82,6 +84,7 @@ export type Database = {
           sequence_number?: string | null
         }
         Update: {
+          alternate_phone?: string | null
           civil_id?: string | null
           created_at?: string
           full_name?: string
@@ -177,8 +180,10 @@ export type Database = {
         Row: {
           amount: number
           cost_price: number
+          courtcollectiondata: Json | null
           created_at: string
           customer_id: string
+          extra_price: number | null
           has_legal_case: boolean
           id: string
           installment_amount: number
@@ -186,15 +191,18 @@ export type Database = {
           notes: string | null
           number_of_installments: number
           profit: number | null
-          remaining_balance: number
+          remaining_balance: number | null
+          sequence_number: string | null
           start_date: string
           status: string
         }
         Insert: {
           amount: number
           cost_price: number
+          courtcollectiondata?: Json | null
           created_at?: string
           customer_id: string
+          extra_price?: number | null
           has_legal_case?: boolean
           id?: string
           installment_amount: number
@@ -202,15 +210,18 @@ export type Database = {
           notes?: string | null
           number_of_installments: number
           profit?: number | null
-          remaining_balance: number
+          remaining_balance?: number | null
+          sequence_number?: string | null
           start_date: string
           status?: string
         }
         Update: {
           amount?: number
           cost_price?: number
+          courtcollectiondata?: Json | null
           created_at?: string
           customer_id?: string
+          extra_price?: number | null
           has_legal_case?: boolean
           id?: string
           installment_amount?: number
@@ -218,7 +229,8 @@ export type Database = {
           notes?: string | null
           number_of_installments?: number
           profit?: number | null
-          remaining_balance?: number
+          remaining_balance?: number | null
+          sequence_number?: string | null
           start_date?: string
           status?: string
         }
@@ -272,16 +284,7 @@ export type Database = {
       }
       get_dashboard_stats: {
         Args: Record<PropertyKey, never>
-        Returns: {
-          overdue_transactions: number
-          total_active_transactions: number
-          total_cost: number
-          total_customers: number
-          total_outstanding: number
-          total_overdue: number
-          total_profit: number
-          total_revenue: number
-        }[]
+        Returns: Json
       }
       has_role: {
         Args: {
@@ -314,6 +317,24 @@ export type Database = {
               p_transaction_id: string
             }
           | { p_amount: number; p_transaction_id: string }
+        Returns: string
+      }
+      search_transactions: {
+        Args: { p_search_term: string }
+        Returns: {
+          amount: number
+          created_at: string
+          customer: Json
+          customer_id: string
+          id: string
+          installment_amount: number
+          remaining_balance: number
+          sequence_number: string
+          status: string
+        }[]
+      }
+      string_to_uuid: {
+        Args: { input_str: string }
         Returns: string
       }
       update_customer_risk_score: {
