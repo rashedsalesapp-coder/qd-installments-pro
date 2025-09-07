@@ -9,7 +9,7 @@ import { supabase } from "@/lib/supabaseClient";
 const CUSTOMERS_PER_PAGE = 20;
 
 // --- Supabase API Functions ---
-const getCustomers = async ({ pageParam = 0 }): Promise<{ data: Customer[], nextPage: number | null }> => {
+const getCustomers = async ({ pageParam = 0 }: { pageParam?: number }): Promise<{ data: Customer[], nextPage: number | null }> => {
     const from = pageParam * CUSTOMERS_PER_PAGE;
     const to = from + CUSTOMERS_PER_PAGE - 1;
 
@@ -57,7 +57,7 @@ const CustomersPage = () => {
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
-  } = useInfiniteQuery<{ data: Customer[], nextPage: number | null }>({
+  } = useInfiniteQuery({
     queryKey: ["customers"],
     queryFn: getCustomers,
     initialPageParam: 0,

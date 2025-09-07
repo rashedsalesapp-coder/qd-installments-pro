@@ -81,6 +81,9 @@ const Index = () => {
             onAddCustomer={handleAddCustomer}
             onEditCustomer={handleEditCustomer}
             onViewCustomer={handleViewCustomer}
+            onLoadMore={() => {}}
+            canLoadMore={false}
+            isLoadingMore={false}
           />
         );
       case "transactions":
