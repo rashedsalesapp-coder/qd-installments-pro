@@ -91,13 +91,13 @@ export const UserForm = ({ mode, isOpen, onClose, user }: UserFormProps) => {
     },
   });
 
-  const onSubmit = (values: z.infer<typeof createUserSchema | typeof editUserSchema>) => {
-    if (isEditMode && user) {
-        mutation.mutate({ userId: user.id, role: (values as z.infer<typeof editUserSchema>).role });
-    } else {
-        mutation.mutate(values as z.infer<typeof createUserSchema>);
-    }
-  };
+   const onSubmit = (values: any) => {
+     if (isEditMode && user) {
+         mutation.mutate({ userId: user.id, role: values.role });
+     } else {
+         mutation.mutate(values);
+     }
+   };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
