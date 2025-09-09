@@ -80,7 +80,13 @@ export const UserForm = ({ mode, isOpen, onClose, user }: UserFormProps) => {
   });
 
   const mutation = useMutation({
-    mutationFn: isEditMode ? updateUserRole : createUser,
+    mutationFn: async (data: any) => {
+      if (isEditMode) {
+        return updateUserRole(data);
+      } else {
+        return createUser(data);
+      }
+    },
     onSuccess: () => {
       toast({ title: `تم ${isEditMode ? 'تحديث' : 'إنشاء'} المستخدم بنجاح` });
       queryClient.invalidateQueries({ queryKey: ['user_roles'] });
@@ -91,13 +97,13 @@ export const UserForm = ({ mode, isOpen, onClose, user }: UserFormProps) => {
     },
   });
 
-   const onSubmit = (values: any) => {
-     if (isEditMode && user) {
-         mutation.mutate({ userId: user.id, role: values.role });
-     } else {
-         mutation.mutate(values);
-     }
-   };
+  const onSubmit = (values: any) => {
+    if (isEditMode && user) {
+        mutation.mutate({ userId: user.id, role: values.role });
+    } else {
+        mutation.mutate(values);
+    }
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
