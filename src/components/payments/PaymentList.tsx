@@ -1,20 +1,32 @@
+import { useAuth } from "@/hooks/useAuth";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Payment } from "@/lib/types";
 import { formatCurrency, formatArabicDate } from "@/lib/utils-arabic";
-import { ChevronsDown, Loader2, PlusCircle } from "lucide-react";
+import { ChevronsDown, Loader2, PlusCircle, Trash2 } from "lucide-react";
 
 interface PaymentListProps {
   payments: Payment[];
-  onLoadMore: () => void;
-  canLoadMore: boolean;
-  isLoadingMore: boolean;
   onAddPayment: () => void;
+  onDeletePayment: (paymentId: string) => void;
+  // Re-adding pagination props
+  onLoadMore?: () => void;
+  canLoadMore?: boolean;
+  isLoadingMore?: boolean;
 }
 
-const PaymentList = ({ payments, onLoadMore, canLoadMore, isLoadingMore, onAddPayment }: PaymentListProps) => {
+const PaymentList = ({
+    payments,
+    onAddPayment,
+    onDeletePayment,
+    onLoadMore,
+    canLoadMore,
+    isLoadingMore,
+}: PaymentListProps) => {
+  const { hasRole } = useAuth();
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -34,7 +46,6 @@ const PaymentList = ({ payments, onLoadMore, canLoadMore, isLoadingMore, onAddPa
       <Card className="shadow-card">
         <CardHeader>
           <CardTitle>سجل المدفوعات</CardTitle>
-           {/* TODO: Add filtering options here */}
         </CardHeader>
         <CardContent>
           <Table>
@@ -46,12 +57,13 @@ const PaymentList = ({ payments, onLoadMore, canLoadMore, isLoadingMore, onAddPa
                 <TableHead className="text-right">الرصيد بعد الدفعة</TableHead>
                 <TableHead className="text-right">تاريخ الدفع</TableHead>
                 <TableHead className="text-right">طريقة الدفع</TableHead>
+                <TableHead className="text-right">الإجراءات</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-               {payments.length === 0 && !isLoadingMore ? (
+               {payments.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                     لم يتم العثور على مدفوعات.
                   </TableCell>
                 </TableRow>
@@ -65,14 +77,26 @@ const PaymentList = ({ payments, onLoadMore, canLoadMore, isLoadingMore, onAddPa
                     <TableCell className="text-green-600 font-medium">{formatCurrency(payment.amount)}</TableCell>
                     <TableCell>{formatCurrency(payment.balance_after)}</TableCell>
                     <TableCell>{formatArabicDate(new Date(payment.payment_date))}</TableCell>
-                    <TableCell>{'غير محدد'}</TableCell>
+                    <TableCell>{payment.payment_method || 'غير محدد'}</TableCell>
+                    <TableCell>
+                        {hasRole('admin') && (
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => onDeletePayment(payment.id)}
+                                title="حذف الدفعة"
+                            >
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                        )}
+                    </TableCell>
                   </TableRow>
                 ))
               )}
             </TableBody>
           </Table>
         </CardContent>
-        {canLoadMore && (
+        {canLoadMore && onLoadMore && (
           <CardFooter className="flex justify-center">
             <Button
               onClick={onLoadMore}

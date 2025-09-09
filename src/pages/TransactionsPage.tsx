@@ -1,21 +1,16 @@
 import { useState } from "react";
-import { useInfiniteQuery, useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import TransactionList from "@/components/transactions/TransactionList";
 import TransactionForm from "@/components/transactions/TransactionForm";
-import { PaymentForm } from "@/components/payments/PaymentForm";
+import PaymentForm from "@/components/payments/PaymentForm";
 import { Transaction, Customer } from "@/lib/types";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/lib/supabaseClient";
 import { formatCurrency } from "@/lib/utils-arabic";
 
-const TRANSACTIONS_PER_PAGE = 25;
-
 // --- Supabase API Functions ---
-const getTransactions = async ({ pageParam = 0 }): Promise<{ data: Transaction[], nextPage: number | null }> => {
-    const from = pageParam * TRANSACTIONS_PER_PAGE;
-    const to = from + TRANSACTIONS_PER_PAGE - 1;
-
-    const { data, error, count } = await supabase
+const getTransactions = async (): Promise<Transaction[]> => {
+    const { data, error } = await supabase
         .from('transactions')
         .select(`
             id,
@@ -34,9 +29,9 @@ const getTransactions = async ({ pageParam = 0 }): Promise<{ data: Transaction[]
             notes,
             created_at,
             customers (id, full_name, mobile_number)
-        `, { count: 'exact' })
+        `)
         .order('created_at', { ascending: false })
-        .range(from, to);
+        .limit(50); // Limit to latest 50 transactions for better performance
 
     if (error) throw new Error(error.message);
 
@@ -48,12 +43,7 @@ const getTransactions = async ({ pageParam = 0 }): Promise<{ data: Transaction[]
         };
     });
 
-    const hasMore = count ? from + mappedData.length < count : false;
-
-    return {
-        data: mappedData as Transaction[],
-        nextPage: hasMore ? pageParam + 1 : null,
-    };
+    return { data: mappedData as Transaction[], count: count ?? 0 };
 };
 
 const getCustomers = async (): Promise<Customer[]> => {
@@ -79,20 +69,7 @@ const deleteTransaction = async (transactionId: string): Promise<any> => {
     const { data, error } = await supabase.from('transactions').delete().eq('id', transactionId);
     if (error) throw new Error(error.message);
     return data;
-};
-
-const searchTransactions = async (searchTerm: string): Promise<Transaction[]> => {
-    const { data, error } = await supabase.rpc('search_transactions', {
-        p_search_term: searchTerm
-    });
-    if (error) throw new Error(error.message);
-    
-    // Map the returned data to match Transaction interface
-    return data.map((t: any) => ({
-        ...t,
-        customer: t.customer
-    })) as Transaction[];
-};
+}
 // --- End Supabase API Functions ---
 
 const DEFAULT_MESSAGE_TEMPLATE = "عزيزي [CustomerName]،\nنود تذكيركم بأن قسطكم بمبلغ [Amount] دينار كويتي مستحق الدفع.\nالرصيد المتبقي: [Balance] دينار كويتي.\nشكرًا لتعاونكم.";
@@ -104,38 +81,16 @@ const TransactionsPage = () => {
     const [showForm, setShowForm] = useState(false);
     const [editingTransaction, setEditingTransaction] = useState<Transaction | undefined>();
     const [paymentTransaction, setPaymentTransaction] = useState<Transaction | null>(null);
-    const [searchTerm, setSearchTerm] = useState("");
-    const [isSearching, setIsSearching] = useState(false);
 
-    const {
-        data,
-        isLoading: isLoadingTransactions,
-        fetchNextPage,
-        hasNextPage,
-        isFetchingNextPage,
-    } = useInfiniteQuery({
+    const { data: transactions, isLoading: isLoadingTransactions } = useQuery<Transaction[]>({
         queryKey: ["transactions"],
         queryFn: getTransactions,
-        initialPageParam: 0,
-        getNextPageParam: (lastPage) => lastPage.nextPage,
     });
-
-    const transactions = data?.pages.flatMap(page => page.data) ?? [];
 
     const { data: customers, isLoading: isLoadingCustomers } = useQuery<Customer[]>({
         queryKey: ["customers"],
         queryFn: getCustomers,
     });
-
-    // Search query
-    const { data: searchResults, isLoading: isLoadingSearch } = useQuery<Transaction[]>({
-        queryKey: ["searchTransactions", searchTerm],
-        queryFn: () => searchTransactions(searchTerm),
-        enabled: searchTerm.length > 0,
-    });
-
-    // Use search results if searching, otherwise use regular transactions
-    const displayTransactions = searchTerm.length > 0 ? (searchResults ?? []) : transactions;
 
     const addMutation = useMutation({
         mutationFn: addTransaction,
@@ -187,7 +142,7 @@ const TransactionsPage = () => {
         window.open(whatsappUrl, '_blank');
     };
 
-    if ((isLoadingTransactions && !transactions.length) || isLoadingCustomers) return <div>جاري التحميل...</div>;
+    if (isLoadingTransactions || isLoadingCustomers) return <div>جاري التحميل...</div>;
 
     return (
         <div>
@@ -205,7 +160,7 @@ const TransactionsPage = () => {
             ) : (
                 <>
                     <TransactionList
-                        transactions={displayTransactions}
+                        transactions={transactions || []}
                         onAddTransaction={() => {
                             setEditingTransaction(undefined);
                             setShowForm(true);
@@ -217,12 +172,6 @@ const TransactionsPage = () => {
                         onDeleteTransaction={(id) => deleteMutation.mutate(id)}
                         onRecordPayment={(transaction) => setPaymentTransaction(transaction)}
                         onSendReminder={handleSendReminder}
-                        onLoadMore={searchTerm.length > 0 ? () => {} : fetchNextPage}
-                        canLoadMore={searchTerm.length > 0 ? false : !!hasNextPage}
-                        isLoadingMore={searchTerm.length > 0 ? isLoadingSearch : isFetchingNextPage}
-                        searchTerm={searchTerm}
-                        onSearchChange={setSearchTerm}
-                        isSearching={isLoadingSearch}
                     />
                     {paymentTransaction && (
                         <PaymentForm

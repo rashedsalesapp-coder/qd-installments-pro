@@ -9,11 +9,12 @@ import {
     LogOut,
     Upload,
     FileText,
-    Settings
+    Settings,
+    ShieldCheck,
 } from "lucide-react";
 
 const Header = () => {
-  const { signOut } = useAuth();
+  const { hasRole, signOut } = useAuth();
 
   const navigationItems = [
     { to: '/dashboard', label: 'لوحة التحكم', icon: Calculator },
@@ -24,6 +25,10 @@ const Header = () => {
     { to: '/reports', label: 'التقارير', icon: FileText },
     { to: '/settings', label: 'الإعدادات', icon: Settings },
   ];
+
+  if (hasRole('admin')) {
+    navigationItems.push({ to: '/user-management', label: 'إدارة المستخدمين', icon: ShieldCheck });
+  }
 
   return (
     <header className="bg-card shadow-card border-b border-border sticky top-0 z-50">

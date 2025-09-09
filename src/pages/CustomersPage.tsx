@@ -1,34 +1,17 @@
 import { useState } from "react";
-import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import CustomerList from "@/components/customers/CustomerList";
 import CustomerForm from "@/components/customers/CustomerForm";
 import { Customer } from "@/lib/types";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/lib/supabaseClient";
 
-const CUSTOMERS_PER_PAGE = 20;
-
 // --- Supabase API Functions ---
-const getCustomers = async ({ pageParam = 0 }: { pageParam?: number }): Promise<{ data: Customer[], nextPage: number | null }> => {
-    const from = pageParam * CUSTOMERS_PER_PAGE;
-    const to = from + CUSTOMERS_PER_PAGE - 1;
-
-    const { data, error, count } = await supabase
-        .from('customers')
-        .select('*', { count: 'exact' })
-        .order('created_at', { ascending: false })
-        .range(from, to);
-
+const getCustomers = async (): Promise<Customer[]> => {
+    const { data, error } = await supabase.from('customers').select('*').order('created_at', { ascending: false });
     if (error) throw new Error(error.message);
-
-    const hasMore = count ? from + data.length < count : false;
-
-    return {
-        data: data as Customer[],
-        nextPage: hasMore ? pageParam + 1 : null,
-    };
+    return data as Customer[];
 };
-
 
 const addCustomer = async (customer: Omit<Customer, 'id' | 'created_at' | 'updatedAt'>): Promise<any> => {
     const { data, error } = await supabase.from('customers').insert([customer]).select();
@@ -50,21 +33,10 @@ const CustomersPage = () => {
   const [showCustomerForm, setShowCustomerForm] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | undefined>();
 
-  const {
-    data,
-    isLoading,
-    isError,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
-  } = useInfiniteQuery({
+  const { data: customers, isLoading, isError } = useQuery<Customer[]>({
     queryKey: ["customers"],
     queryFn: getCustomers,
-    initialPageParam: 0,
-    getNextPageParam: (lastPage) => lastPage.nextPage,
   });
-
-  const customers = data?.pages.flatMap(page => page.data) ?? [];
 
   const addMutation = useMutation({
     mutationFn: addCustomer,
@@ -114,7 +86,7 @@ const CustomersPage = () => {
     console.log("View customer:", customer);
   };
 
-  if (isLoading && !customers.length) return <div>جاري تحميل العملاء...</div>;
+  if (isLoading) return <div>جاري تحميل العملاء...</div>;
   if (isError) return <div>خطأ في تحميل العملاء</div>;
 
   if (showCustomerForm) {
@@ -133,13 +105,10 @@ const CustomersPage = () => {
 
   return (
     <CustomerList
-      customers={customers}
+      customers={customers || []}
       onAddCustomer={handleAddCustomer}
       onEditCustomer={handleEditCustomer}
       onViewCustomer={handleViewCustomer}
-      onLoadMore={fetchNextPage}
-      canLoadMore={!!hasNextPage}
-      isLoadingMore={isFetchingNextPage}
     />
   );
 };

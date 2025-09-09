@@ -1,14 +1,15 @@
 import { useState } from "react";
-import { useInfiniteQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import PaymentList from "@/components/payments/PaymentList";
 import { PaymentForm } from "@/components/payments/PaymentForm";
 import { TransactionSearchModal } from "@/components/payments/TransactionSearchModal";
 import { Payment, Transaction } from "@/lib/types";
 import { supabase } from "@/lib/supabaseClient";
+import { useToast } from "@/components/ui/use-toast";
 
 const PAYMENTS_PER_PAGE = 30;
 
-// --- Supabase API Function ---
+// --- Supabase API Functions ---
 const getPayments = async ({ pageParam = 0 }): Promise<{ data: Payment[], nextPage: number | null }> => {
     const from = pageParam * PAYMENTS_PER_PAGE;
     const to = from + PAYMENTS_PER_PAGE - 1;
@@ -25,16 +26,23 @@ const getPayments = async ({ pageParam = 0 }): Promise<{ data: Payment[], nextPa
 
     if (error) throw new Error(error.message);
 
-    const hasMore = count ? from + data.length < count : false;
+    const hasMore = count ? from + (data?.length || 0) < count : false;
 
     return {
         data: data as Payment[],
         nextPage: hasMore ? pageParam + 1 : null,
     };
 };
-// --- End Supabase API Function ---
+
+const deletePayment = async (paymentId: string) => {
+    const { error } = await supabase.from('payments').delete().eq('id', paymentId);
+    if (error) throw new Error(error.message);
+};
+// --- End Supabase API Functions ---
 
 const PaymentsPage = () => {
+    const queryClient = useQueryClient();
+    const { toast } = useToast();
     const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
     const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
 
@@ -52,6 +60,19 @@ const PaymentsPage = () => {
         getNextPageParam: (lastPage) => lastPage.nextPage,
     });
 
+    const deleteMutation = useMutation({
+        mutationFn: deletePayment,
+        onSuccess: () => {
+            toast({ title: "تم حذف الدفعة بنجاح" });
+            queryClient.invalidateQueries({ queryKey: ["payments"] });
+            queryClient.invalidateQueries({ queryKey: ["transactions"] });
+            queryClient.invalidateQueries({ queryKey: ["dashboardStats"] });
+        },
+        onError: (error: any) => {
+            toast({ title: "خطأ", description: error.message, variant: "destructive" });
+        },
+    });
+
     const payments = data?.pages.flatMap(page => page.data) ?? [];
 
     const handleTransactionSelect = (transaction: Transaction) => {
@@ -66,10 +87,8 @@ const PaymentsPage = () => {
         <>
             <PaymentList
                 payments={payments}
-                onLoadMore={fetchNextPage}
-                canLoadMore={!!hasNextPage}
-                isLoadingMore={isFetchingNextPage}
                 onAddPayment={() => setIsSearchModalOpen(true)}
+                onDeletePayment={(paymentId) => deleteMutation.mutate(paymentId)}
             />
             <TransactionSearchModal
                 isOpen={isSearchModalOpen}

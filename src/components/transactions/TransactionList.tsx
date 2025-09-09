@@ -1,3 +1,4 @@
+import { useAuth } from "@/hooks/useAuth";
 import {
   Table,
   TableBody,
@@ -8,11 +9,10 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Transaction } from "@/lib/types";
 import { formatCurrency, formatArabicDate } from "@/lib/utils-arabic";
-import { Edit, Trash2, DollarSign, MessageCircle, ChevronsDown, Loader2, PlusCircle, Search } from "lucide-react";
+import { Edit, Trash2, DollarSign, MessageCircle, PlusCircle } from "lucide-react";
 
 interface TransactionListProps {
   transactions: Transaction[];
@@ -21,12 +21,6 @@ interface TransactionListProps {
   onDeleteTransaction: (transactionId: string) => void;
   onRecordPayment: (transaction: Transaction) => void;
   onSendReminder: (transaction: Transaction) => void;
-  onLoadMore: () => void;
-  canLoadMore: boolean;
-  isLoadingMore: boolean;
-  searchTerm: string;
-  onSearchChange: (term: string) => void;
-  isSearching: boolean;
 }
 
 const TransactionList = ({
@@ -36,13 +30,9 @@ const TransactionList = ({
   onDeleteTransaction,
   onRecordPayment,
   onSendReminder,
-  onLoadMore,
-  canLoadMore,
-  isLoadingMore,
-  searchTerm,
-  onSearchChange,
-  isSearching,
 }: TransactionListProps) => {
+  const { hasRole } = useAuth();
+
   const getStatusBadge = (transaction: Transaction) => {
     if (transaction.has_legal_case) {
       return <Badge variant="destructive">قضية قانونية</Badge>;
@@ -75,18 +65,6 @@ const TransactionList = ({
       <Card className="shadow-card">
         <CardHeader>
            <CardTitle>قائمة المعاملات</CardTitle>
-           <div className="flex items-center space-x-reverse space-x-2 mt-4">
-             <div className="relative flex-1 max-w-sm">
-               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-               <Input
-                 placeholder="البحث بالاسم أو رقم الهاتف أو رقم المعاملة..."
-                 value={searchTerm}
-                 onChange={(e) => onSearchChange(e.target.value)}
-                 className="pl-9"
-               />
-             </div>
-             {isSearching && <Loader2 className="h-4 w-4 animate-spin" />}
-           </div>
         </CardHeader>
         <CardContent>
           <Table>
@@ -102,10 +80,10 @@ const TransactionList = ({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {transactions.length === 0 && !isLoadingMore && !isSearching ? (
+              {transactions.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                    {searchTerm ? "لم يتم العثور على نتائج للبحث." : "لم يتم العثور على معاملات."}
+                    لم يتم العثور على معاملات.
                   </TableCell>
                 </TableRow>
               ) : (
@@ -129,12 +107,16 @@ const TransactionList = ({
                         <Button variant="ghost" size="sm" onClick={() => onRecordPayment(transaction)} title="تسجيل دفعة">
                           <DollarSign className="h-4 w-4 text-green-600" />
                         </Button>
-                        <Button variant="ghost" size="sm" onClick={() => onEditTransaction(transaction)} title="تعديل">
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="sm" onClick={() => onDeleteTransaction(transaction.id)} title="حذف">
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
+                        {hasRole('admin') && (
+                          <>
+                            <Button variant="ghost" size="sm" onClick={() => onEditTransaction(transaction)} title="تعديل">
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button variant="ghost" size="sm" onClick={() => onDeleteTransaction(transaction.id)} title="حذف">
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          </>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>
@@ -143,23 +125,6 @@ const TransactionList = ({
             </TableBody>
           </Table>
         </CardContent>
-        {canLoadMore && (
-          <CardFooter className="flex justify-center">
-            <Button
-              onClick={onLoadMore}
-              disabled={isLoadingMore}
-              variant="outline"
-              className="flex items-center space-x-reverse space-x-2"
-            >
-              {isLoadingMore ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <ChevronsDown className="h-4 w-4" />
-              )}
-              <span>{isLoadingMore ? "جاري التحميل..." : "تحميل المزيد"}</span>
-            </Button>
-          </CardFooter>
-        )}
       </Card>
     </div>
   );
