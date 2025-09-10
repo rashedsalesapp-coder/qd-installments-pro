@@ -5,7 +5,7 @@ import TransactionForm from "@/components/transactions/TransactionForm";
 import PaymentForm from "@/components/payments/PaymentForm";
 import { Transaction, Customer } from "@/lib/types";
 import { useToast } from "@/components/ui/use-toast";
-import { supabase } from "@/lib/supabaseClient";
+import { supabase } from "@/integrations/supabase/client";
 import { formatCurrency } from "@/lib/utils-arabic";
 
 // --- Supabase API Functions ---

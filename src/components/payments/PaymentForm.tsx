@@ -14,7 +14,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { Transaction } from "@/lib/types";
 import { formatCurrency } from "@/lib/utils-arabic";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/lib/supabaseClient";
+import { supabase } from "@/integrations/supabase/client";
 
 interface PaymentFormProps {
   transaction: Transaction;

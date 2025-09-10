@@ -4,7 +4,7 @@ import PaymentList from "@/components/payments/PaymentList";
 import PaymentForm from "@/components/payments/PaymentForm";
 import { TransactionSearchModal } from "@/components/payments/TransactionSearchModal";
 import { Payment, Transaction } from "@/lib/types";
-import { supabase } from "@/lib/supabaseClient";
+import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 
 const PAYMENTS_PER_PAGE = 30;

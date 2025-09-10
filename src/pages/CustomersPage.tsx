@@ -4,7 +4,7 @@ import CustomerList from "@/components/customers/CustomerList";
 import CustomerForm from "@/components/customers/CustomerForm";
 import { Customer } from "@/lib/types";
 import { useToast } from "@/components/ui/use-toast";
-import { supabase } from "@/lib/supabaseClient";
+import { supabase } from "@/integrations/supabase/client";
 
 // --- Supabase API Functions ---
 const getCustomers = async (): Promise<Customer[]> => {
