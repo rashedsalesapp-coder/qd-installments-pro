@@ -64,6 +64,7 @@ export type Database = {
       }
       customers: {
         Row: {
+          alternate_phone: string | null
           civil_id: string | null
           created_at: string
           full_name: string
@@ -73,6 +74,7 @@ export type Database = {
           sequence_number: string | null
         }
         Insert: {
+          alternate_phone?: string | null
           civil_id?: string | null
           created_at?: string
           full_name: string
@@ -82,6 +84,7 @@ export type Database = {
           sequence_number?: string | null
         }
         Update: {
+          alternate_phone?: string | null
           civil_id?: string | null
           created_at?: string
           full_name?: string
@@ -173,12 +176,29 @@ export type Database = {
           },
         ]
       }
+      profiles: {
+        Row: {
+          id: string
+          role: string
+        }
+        Insert: {
+          id: string
+          role?: string
+        }
+        Update: {
+          id?: string
+          role?: string
+        }
+        Relationships: []
+      }
       transactions: {
         Row: {
           amount: number
           cost_price: number
+          courtcollectiondata: Json | null
           created_at: string
           customer_id: string
+          extra_price: number | null
           has_legal_case: boolean
           id: string
           installment_amount: number
@@ -186,15 +206,18 @@ export type Database = {
           notes: string | null
           number_of_installments: number
           profit: number | null
-          remaining_balance: number
+          remaining_balance: number | null
+          sequence_number: string | null
           start_date: string
           status: string
         }
         Insert: {
           amount: number
           cost_price: number
+          courtcollectiondata?: Json | null
           created_at?: string
           customer_id: string
+          extra_price?: number | null
           has_legal_case?: boolean
           id?: string
           installment_amount: number
@@ -202,15 +225,18 @@ export type Database = {
           notes?: string | null
           number_of_installments: number
           profit?: number | null
-          remaining_balance: number
+          remaining_balance?: number | null
+          sequence_number?: string | null
           start_date: string
           status?: string
         }
         Update: {
           amount?: number
           cost_price?: number
+          courtcollectiondata?: Json | null
           created_at?: string
           customer_id?: string
+          extra_price?: number | null
           has_legal_case?: boolean
           id?: string
           installment_amount?: number
@@ -218,7 +244,8 @@ export type Database = {
           notes?: string | null
           number_of_installments?: number
           profit?: number | null
-          remaining_balance?: number
+          remaining_balance?: number | null
+          sequence_number?: string | null
           start_date?: string
           status?: string
         }
@@ -255,7 +282,24 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      user_roles_view: {
+        Row: {
+          created_at: string | null
+          id: string | null
+          role: Database["public"]["Enums"]["app_role"] | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string | null
+          role?: Database["public"]["Enums"]["app_role"] | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string | null
+          role?: Database["public"]["Enums"]["app_role"] | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       check_overdue_transactions: {
@@ -272,16 +316,11 @@ export type Database = {
       }
       get_dashboard_stats: {
         Args: Record<PropertyKey, never>
-        Returns: {
-          overdue_transactions: number
-          total_active_transactions: number
-          total_cost: number
-          total_customers: number
-          total_outstanding: number
-          total_overdue: number
-          total_profit: number
-          total_revenue: number
-        }[]
+        Returns: Json
+      }
+      get_user_role: {
+        Args: { p_user_id: string }
+        Returns: string
       }
       has_role: {
         Args: {
@@ -307,13 +346,41 @@ export type Database = {
         }
       }
       record_payment: {
-        Args:
-          | {
-              p_amount: number
-              p_payment_date?: string
-              p_transaction_id: string
-            }
-          | { p_amount: number; p_transaction_id: string }
+        Args: {
+          p_amount: number
+          p_payment_date?: string
+          p_transaction_id: string
+        }
+        Returns: undefined
+      }
+      search_transactions: {
+        Args: { p_search_term: string }
+        Returns: {
+          amount: number
+          cost_price: number
+          created_at: string
+          customer: Json
+          customer_id: string
+          extra_price: number
+          has_legal_case: boolean
+          id: string
+          installment_amount: number
+          legal_case_details: string
+          notes: string
+          number_of_installments: number
+          profit: number
+          remaining_balance: number
+          sequence_number: string
+          start_date: string
+          status: string
+        }[]
+      }
+      setup_admin_user: {
+        Args: { user_email: string; user_id: string }
+        Returns: undefined
+      }
+      string_to_uuid: {
+        Args: { input_str: string }
         Returns: string
       }
       update_customer_risk_score: {
@@ -325,6 +392,13 @@ export type Database = {
           id: string
           score: number
         }
+      }
+      update_user_role: {
+        Args: {
+          p_new_role: Database["public"]["Enums"]["app_role"]
+          p_user_id: string
+        }
+        Returns: undefined
       }
     }
     Enums: {
