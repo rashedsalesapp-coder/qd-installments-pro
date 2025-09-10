@@ -80,13 +80,7 @@ export const UserForm = ({ mode, isOpen, onClose, user }: UserFormProps) => {
   });
 
   const mutation = useMutation({
-    mutationFn: async (data: any) => {
-      if (isEditMode) {
-        return updateUserRole(data);
-      } else {
-        return createUser(data);
-      }
-    },
+    mutationFn: isEditMode ? updateUserRole : createUser,
     onSuccess: () => {
       toast({ title: `تم ${isEditMode ? 'تحديث' : 'إنشاء'} المستخدم بنجاح` });
       queryClient.invalidateQueries({ queryKey: ['user_roles'] });
@@ -97,11 +91,11 @@ export const UserForm = ({ mode, isOpen, onClose, user }: UserFormProps) => {
     },
   });
 
-  const onSubmit = (values: any) => {
+  const onSubmit = (values: z.infer<typeof createUserSchema | typeof editUserSchema>) => {
     if (isEditMode && user) {
-        mutation.mutate({ userId: user.id, role: values.role });
+        mutation.mutate({ userId: user.id, role: (values as z.infer<typeof editUserSchema>).role });
     } else {
-        mutation.mutate(values);
+        mutation.mutate(values as z.infer<typeof createUserSchema>);
     }
   };
 

@@ -43,7 +43,7 @@ const getTransactions = async (): Promise<Transaction[]> => {
         };
     });
 
-    return mappedData as Transaction[];
+    return { data: mappedData as Transaction[], count: count ?? 0 };
 };
 
 const getCustomers = async (): Promise<Customer[]> => {
