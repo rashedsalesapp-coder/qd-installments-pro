@@ -58,10 +58,10 @@ const createUser = async (values: z.infer<typeof createUserSchema>) => {
   return data;
 };
 
-const updateUserRole = async ({ userId, role }: { userId: string, role: 'admin' | 'user' }) => {
+const updateUserRole = async (params: { userId: string, role: 'admin' | 'user' }) => {
   const { error } = await supabase.rpc('update_user_role', {
-    p_user_id: userId,
-    p_new_role: role,
+    p_user_id: params.userId,
+    p_new_role: params.role,
   });
   if (error) throw error;
 };
@@ -79,10 +79,10 @@ export const UserForm = ({ mode, isOpen, onClose, user }: UserFormProps) => {
       : { email: "", password: "", role: "user" },
   });
 
-  const mutation = useMutation({
-    mutationFn: isEditMode ? updateUserRole : createUser,
+  const createMutation = useMutation({
+    mutationFn: createUser,
     onSuccess: () => {
-      toast({ title: `تم ${isEditMode ? 'تحديث' : 'إنشاء'} المستخدم بنجاح` });
+      toast({ title: "تم إنشاء المستخدم بنجاح" });
       queryClient.invalidateQueries({ queryKey: ['user_roles'] });
       onClose();
     },
@@ -91,11 +91,23 @@ export const UserForm = ({ mode, isOpen, onClose, user }: UserFormProps) => {
     },
   });
 
-  const onSubmit = (values: z.infer<typeof createUserSchema | typeof editUserSchema>) => {
+  const updateMutation = useMutation({
+    mutationFn: updateUserRole,
+    onSuccess: () => {
+      toast({ title: "تم تحديث المستخدم بنجاح" });
+      queryClient.invalidateQueries({ queryKey: ['user_roles'] });
+      onClose();
+    },
+    onError: (error: any) => {
+      toast({ title: "خطأ", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const onSubmit = (values: any) => {
     if (isEditMode && user) {
-        mutation.mutate({ userId: user.id, role: (values as z.infer<typeof editUserSchema>).role });
+        updateMutation.mutate({ userId: user.id, role: values.role });
     } else {
-        mutation.mutate(values as z.infer<typeof createUserSchema>);
+        createMutation.mutate(values);
     }
   };
 
@@ -154,11 +166,11 @@ export const UserForm = ({ mode, isOpen, onClose, user }: UserFormProps) => {
               )}
             />
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={onClose} disabled={mutation.isPending}>
+              <Button type="button" variant="outline" onClick={onClose} disabled={createMutation.isPending || updateMutation.isPending}>
                 إلغاء
               </Button>
-              <Button type="submit" disabled={mutation.isPending}>
-                {mutation.isPending ? 'جاري الحفظ...' : 'حفظ'}
+              <Button type="submit" disabled={createMutation.isPending || updateMutation.isPending}>
+                {createMutation.isPending || updateMutation.isPending ? 'جاري الحفظ...' : 'حفظ'}
               </Button>
             </DialogFooter>
           </form>

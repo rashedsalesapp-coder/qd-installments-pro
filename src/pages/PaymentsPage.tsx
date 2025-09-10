@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import PaymentList from "@/components/payments/PaymentList";
-import { PaymentForm } from "@/components/payments/PaymentForm";
+import PaymentForm from "@/components/payments/PaymentForm";
 import { TransactionSearchModal } from "@/components/payments/TransactionSearchModal";
 import { Payment, Transaction } from "@/lib/types";
 import { supabase } from "@/lib/supabaseClient";

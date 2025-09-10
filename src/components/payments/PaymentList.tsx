@@ -77,7 +77,7 @@ const PaymentList = ({
                     <TableCell className="text-green-600 font-medium">{formatCurrency(payment.amount)}</TableCell>
                     <TableCell>{formatCurrency(payment.balance_after)}</TableCell>
                     <TableCell>{formatArabicDate(new Date(payment.payment_date))}</TableCell>
-                    <TableCell>{payment.payment_method || 'غير محدد'}</TableCell>
+                    <TableCell>{payment.notes || 'غير محدد'}</TableCell>
                     <TableCell>
                         {hasRole('admin') && (
                             <Button
