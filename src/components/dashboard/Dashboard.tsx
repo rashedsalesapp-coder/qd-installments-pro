@@ -13,7 +13,14 @@ import { supabase } from "@/integrations/supabase/client";
 const getDashboardStats = async (): Promise<DashboardStats> => {
     const { data, error } = await supabase.rpc('get_dashboard_stats');
     if (error) throw new Error(error.message);
-    return data as DashboardStats;
+    if (typeof data === 'string') {
+        try {
+            return JSON.parse(data);
+        } catch {
+            throw new Error('Invalid JSON response from get_dashboard_stats');
+        }
+    }
+    return (data as unknown) as DashboardStats;
 };
 
 const checkOverdueTransactions = async (): Promise<{ message: string }> => {

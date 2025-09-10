@@ -358,19 +358,19 @@ export type Database = {
         Returns: {
           amount: number
           cost_price: number
+          courtcollectiondata: Json | null
           created_at: string
-          customer: Json
           customer_id: string
-          extra_price: number
+          extra_price: number | null
           has_legal_case: boolean
           id: string
           installment_amount: number
-          legal_case_details: string
-          notes: string
+          legal_case_details: string | null
+          notes: string | null
           number_of_installments: number
-          profit: number
-          remaining_balance: number
-          sequence_number: string
+          profit: number | null
+          remaining_balance: number | null
+          sequence_number: string | null
           start_date: string
           status: string
         }[]

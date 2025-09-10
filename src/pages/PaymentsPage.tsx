@@ -14,95 +14,120 @@ const getPayments = async ({ pageParam = 0 }): Promise<{ data: Payment[], nextPa
     const from = pageParam * PAYMENTS_PER_PAGE;
     const to = from + PAYMENTS_PER_PAGE - 1;
 
-    const { data, error, count } = await supabase
+    const { data, error } = await supabase
         .from('payments')
         .select(`
             *,
-            customer:customers (full_name),
-            transaction:transactions (sequence_number)
-        `, { count: 'exact' })
-        .order('payment_date', { ascending: false })
+            customer:customers!customer_id(full_name),
+            transaction:transactions!transaction_id(sequence_number)
+        `)
+        .order('created_at', { ascending: false })
         .range(from, to);
 
     if (error) throw new Error(error.message);
 
-    const hasMore = count ? from + (data?.length || 0) < count : false;
+    const payments = data.map((payment: any) => ({
+        ...payment,
+        payment_date: new Date(payment.payment_date),
+        created_at: new Date(payment.created_at),
+    })) as Payment[];
 
-    return {
-        data: data as Payment[],
-        nextPage: hasMore ? pageParam + 1 : null,
-    };
+    const nextPage = data.length === PAYMENTS_PER_PAGE ? pageParam + 1 : null;
+    return { data: payments, nextPage };
 };
 
-const deletePayment = async (paymentId: string) => {
-    const { error } = await supabase.from('payments').delete().eq('id', paymentId);
+const deletePayment = async (id: string): Promise<void> => {
+    const { error } = await supabase.from('payments').delete().eq('id', id);
     if (error) throw new Error(error.message);
 };
 // --- End Supabase API Functions ---
 
 const PaymentsPage = () => {
+    const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
+    const [showPaymentForm, setShowPaymentForm] = useState(false);
+    const [showTransactionSearch, setShowTransactionSearch] = useState(false);
     const queryClient = useQueryClient();
     const { toast } = useToast();
-    const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
-    const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
 
     const {
-        data,
-        isLoading,
-        isError,
+        data: paymentsData,
         fetchNextPage,
         hasNextPage,
         isFetchingNextPage,
+        isLoading,
+        error,
     } = useInfiniteQuery({
-        queryKey: ["payments"],
+        queryKey: ['payments'],
         queryFn: getPayments,
-        initialPageParam: 0,
         getNextPageParam: (lastPage) => lastPage.nextPage,
+        initialPageParam: 0,
     });
 
     const deleteMutation = useMutation({
         mutationFn: deletePayment,
         onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['payments'] });
+            queryClient.invalidateQueries({ queryKey: ['transactions'] });
+            queryClient.invalidateQueries({ queryKey: ['dashboardStats'] });
             toast({ title: "تم حذف الدفعة بنجاح" });
-            queryClient.invalidateQueries({ queryKey: ["payments"] });
-            queryClient.invalidateQueries({ queryKey: ["transactions"] });
-            queryClient.invalidateQueries({ queryKey: ["dashboardStats"] });
         },
         onError: (error: any) => {
             toast({ title: "خطأ", description: error.message, variant: "destructive" });
-        },
+        }
     });
 
-    const payments = data?.pages.flatMap(page => page.data) ?? [];
+    const allPayments = paymentsData?.pages.flatMap(page => page.data) || [];
+
+    const handleDeletePayment = (id: string) => {
+        if (confirm('هل أنت متأكد من حذف هذه الدفعة؟')) {
+            deleteMutation.mutate(id);
+        }
+    };
 
     const handleTransactionSelect = (transaction: Transaction) => {
         setSelectedTransaction(transaction);
-        setIsSearchModalOpen(false);
+        setShowTransactionSearch(false);
+        setShowPaymentForm(true);
     };
 
-    if (isLoading && !payments.length) return <div>جاري تحميل المدفوعات...</div>;
-    if (isError) return <div>خطأ في تحميل المدفوعات</div>;
+    const handleAddPayment = () => {
+        setShowTransactionSearch(true);
+    };
+
+    if (error) {
+        return <div className="text-center text-red-600">خطأ في تحميل البيانات: {(error as Error).message}</div>;
+    }
 
     return (
-        <>
+        <div className="space-y-6">
+            <div className="flex justify-between items-center">
+                <h1 className="text-3xl font-bold">إدارة المدفوعات</h1>
+            </div>
+
             <PaymentList
-                payments={payments}
-                onAddPayment={() => setIsSearchModalOpen(true)}
-                onDeletePayment={(paymentId) => deleteMutation.mutate(paymentId)}
+                payments={allPayments}
+                onAddPayment={handleAddPayment}
+                onDeletePayment={handleDeletePayment}
+                onLoadMore={fetchNextPage}
             />
+
             <TransactionSearchModal
-                isOpen={isSearchModalOpen}
-                onClose={() => setIsSearchModalOpen(false)}
+                isOpen={showTransactionSearch}
+                onClose={() => setShowTransactionSearch(false)}
                 onTransactionSelect={handleTransactionSelect}
             />
+
             {selectedTransaction && (
                 <PaymentForm
                     transaction={selectedTransaction}
-                    isOpen={!!selectedTransaction}
-                    onClose={() => setSelectedTransaction(null)}
+                    isOpen={showPaymentForm}
+                    onClose={() => {
+                        setShowPaymentForm(false);
+                        setSelectedTransaction(null);
+                    }}
                 />
             )}
-        </>
+        </div>
     );
 };
 

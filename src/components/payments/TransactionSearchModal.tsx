@@ -25,7 +25,11 @@ const searchTransactions = async (searchTerm: string): Promise<Transaction[]> =>
     p_search_term: searchTerm
   });
   if (error) throw new Error(error.message);
-  return data || [];
+  return (data || []).map((t: any) => ({
+    ...t,
+    created_at: new Date(t.created_at),
+    start_date: new Date(t.start_date)
+  })) as Transaction[];
 };
 
 export const TransactionSearchModal = ({ isOpen, onClose, onTransactionSelect }: TransactionSearchModalProps) => {
