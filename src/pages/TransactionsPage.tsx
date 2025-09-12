@@ -5,7 +5,7 @@ import TransactionForm from "@/components/transactions/TransactionForm";
 import PaymentForm from "@/components/payments/PaymentForm";
 import { Transaction, Customer } from "@/lib/types";
 import { useToast } from "@/components/ui/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/supabaseClient";
 import { formatCurrency } from "@/lib/utils-arabic";
 
 // --- Supabase API Functions ---
@@ -13,221 +13,174 @@ const getTransactions = async (): Promise<Transaction[]> => {
     const { data, error } = await supabase
         .from('transactions')
         .select(`
-            *,
-            customer:customers!customer_id(
-                id,
-                full_name,
-                mobile_number
-            )
+            id,
+            sequence_number,
+            customer_id,
+            cost_price,
+            extra_price,
+            amount,
+            profit,
+            installment_amount,
+            start_date,
+            number_of_installments,
+            remaining_balance,
+            status,
+            has_legal_case,
+            notes,
+            created_at,
+            customers (id, full_name, mobile_number)
         `)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(50); // Limit to latest 50 transactions for better performance
 
     if (error) throw new Error(error.message);
-    
-    return data.map((transaction: any) => ({
-        ...transaction,
-        created_at: new Date(transaction.created_at),
-        start_date: new Date(transaction.start_date),
-        customerName: transaction.customer?.full_name || '',
-        mobileNumber: transaction.customer?.mobile_number || ''
-    })) as Transaction[];
+
+    const mappedData = data.map((t: any) => {
+        const { customers, ...rest } = t;
+        return {
+            ...rest,
+            customer: customers,
+        };
+    });
+
+    return { data: mappedData as Transaction[], count: count ?? 0 };
 };
 
 const getCustomers = async (): Promise<Customer[]> => {
-    const { data, error } = await supabase.from('customers').select('*').order('created_at', { ascending: false });
+    const { data, error } = await supabase.from('customers').select('*');
     if (error) throw new Error(error.message);
-    return data.map((customer: any) => ({
-        ...customer,
-        created_at: new Date(customer.created_at),
-        alternate_phone: customer.mobile_number2,
-    })) as Customer[];
+    return data as Customer[];
 };
 
-const createTransaction = async (transactionData: Omit<Transaction, "id" | "created_at" | "customerName" | "mobileNumber">): Promise<Transaction> => {
-    const insertData = {
-        customer_id: transactionData.customer_id,
-        sequence_number: transactionData.sequence_number,
-        cost_price: transactionData.cost_price,
-        extra_price: transactionData.extra_price || 0,
-        amount: transactionData.amount,
-        profit: transactionData.profit || 0,
-        installment_amount: transactionData.installment_amount,
-        start_date: transactionData.start_date instanceof Date ? transactionData.start_date.toISOString().split('T')[0] : transactionData.start_date,
-        number_of_installments: transactionData.number_of_installments,
-        remaining_balance: transactionData.remaining_balance || transactionData.amount,
-        status: transactionData.status || 'active',
-        has_legal_case: transactionData.has_legal_case || false,
-        legal_case_details: transactionData.legal_case_details || null,
-        notes: transactionData.notes || null,
-    };
-
-    const { data, error } = await supabase.from('transactions').insert([insertData]).select().single();
+const addTransaction = async (transaction: Omit<Transaction, 'id' | 'created_at' | 'customerName' | 'mobileNumber'>): Promise<any> => {
+    const { data, error } = await supabase.from('transactions').insert([transaction]).select();
     if (error) throw new Error(error.message);
-    return {
-        ...data,
-        created_at: new Date(data.created_at),
-        start_date: new Date(data.start_date)
-    } as Transaction;
+    return data;
 };
 
-const updateTransaction = async (id: string, transactionData: Partial<Transaction>): Promise<Transaction> => {
-    const updateData: any = {
-        customer_id: transactionData.customer_id,
-        sequence_number: transactionData.sequence_number,
-        cost_price: transactionData.cost_price,
-        extra_price: transactionData.extra_price,
-        amount: transactionData.amount,
-        profit: transactionData.profit,
-        installment_amount: transactionData.installment_amount,
-        start_date: transactionData.start_date instanceof Date ? transactionData.start_date.toISOString().split('T')[0] : transactionData.start_date,
-        number_of_installments: transactionData.number_of_installments,
-        remaining_balance: transactionData.remaining_balance,
-        status: transactionData.status,
-        has_legal_case: transactionData.has_legal_case,
-        legal_case_details: transactionData.legal_case_details,
-        notes: transactionData.notes,
-    };
-
-    const { data, error } = await supabase.from('transactions').update(updateData).eq('id', id).select().single();
+const updateTransaction = async (transaction: Partial<Transaction>): Promise<any> => {
+    const { id, ...updateData } = transaction;
+    const { data, error } = await supabase.from('transactions').update(updateData).eq('id', id);
     if (error) throw new Error(error.message);
-    return {
-        ...data,
-        created_at: new Date(data.created_at),
-        start_date: new Date(data.start_date)
-    } as Transaction;
+    return data;
 };
 
-const deleteTransaction = async (id: string): Promise<void> => {
-    const { error } = await supabase.from('transactions').delete().eq('id', id);
+const deleteTransaction = async (transactionId: string): Promise<any> => {
+    const { data, error } = await supabase.from('transactions').delete().eq('id', transactionId);
     if (error) throw new Error(error.message);
-};
+    return data;
+}
 // --- End Supabase API Functions ---
 
+const DEFAULT_MESSAGE_TEMPLATE = "عزيزي [CustomerName]،\nنود تذكيركم بأن قسطكم بمبلغ [Amount] دينار كويتي مستحق الدفع.\nالرصيد المتبقي: [Balance] دينار كويتي.\nشكرًا لتعاونكم.";
+
+
 const TransactionsPage = () => {
-    const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
-    const [showTransactionForm, setShowTransactionForm] = useState(false);
-    const [showPaymentForm, setShowPaymentForm] = useState(false);
-    const [paymentTransaction, setPaymentTransaction] = useState<Transaction | null>(null);
     const queryClient = useQueryClient();
     const { toast } = useToast();
+    const [showForm, setShowForm] = useState(false);
+    const [editingTransaction, setEditingTransaction] = useState<Transaction | undefined>();
+    const [paymentTransaction, setPaymentTransaction] = useState<Transaction | null>(null);
 
-    const { data: transactions, isLoading: transactionsLoading, error: transactionsError } = useQuery<Transaction[]>({
-        queryKey: ['transactions'],
-        queryFn: getTransactions
+    const { data: transactions, isLoading: isLoadingTransactions } = useQuery<Transaction[]>({
+        queryKey: ["transactions"],
+        queryFn: getTransactions,
     });
 
-    const { data: customers, isLoading: customersLoading } = useQuery<Customer[]>({
-        queryKey: ['customers'],
-        queryFn: getCustomers
+    const { data: customers, isLoading: isLoadingCustomers } = useQuery<Customer[]>({
+        queryKey: ["customers"],
+        queryFn: getCustomers,
     });
 
-    const createMutation = useMutation({
-        mutationFn: createTransaction,
+    const addMutation = useMutation({
+        mutationFn: addTransaction,
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['transactions'] });
-            queryClient.invalidateQueries({ queryKey: ['dashboardStats'] });
-            setShowTransactionForm(false);
-            toast({ title: "تم إنشاء المعاملة بنجاح" });
+            queryClient.invalidateQueries({ queryKey: ["transactions", "dashboardStats"] });
+            setShowForm(false);
+            toast({ title: "تمت إضافة المعاملة بنجاح" });
         },
-        onError: (error: any) => {
-            toast({ title: "خطأ", description: error.message, variant: "destructive" });
-        }
+        onError: (error: any) => toast({ title: "خطأ", description: error.message, variant: "destructive" }),
     });
 
     const updateMutation = useMutation({
-        mutationFn: ({ id, data }: { id: string; data: Partial<Transaction> }) => updateTransaction(id, data),
+        mutationFn: updateTransaction,
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['transactions'] });
-            queryClient.invalidateQueries({ queryKey: ['dashboardStats'] });
-            setShowTransactionForm(false);
-            setSelectedTransaction(null);
+            queryClient.invalidateQueries({ queryKey: ["transactions", "dashboardStats"] });
+            setShowForm(false);
+            setEditingTransaction(undefined);
             toast({ title: "تم تحديث المعاملة بنجاح" });
         },
-        onError: (error: any) => {
-            toast({ title: "خطأ", description: error.message, variant: "destructive" });
-        }
+        onError: (error: any) => toast({ title: "خطأ", description: error.message, variant: "destructive" }),
     });
 
     const deleteMutation = useMutation({
         mutationFn: deleteTransaction,
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['transactions'] });
-            queryClient.invalidateQueries({ queryKey: ['dashboardStats'] });
+            queryClient.invalidateQueries({ queryKey: ["transactions", "dashboardStats"] });
             toast({ title: "تم حذف المعاملة بنجاح" });
         },
-        onError: (error: any) => {
-            toast({ title: "خطأ", description: error.message, variant: "destructive" });
-        }
+        onError: (error: any) => toast({ title: "خطأ", description: error.message, variant: "destructive" }),
     });
 
-    const handleSaveTransaction = (transactionData: Omit<Transaction, "id" | "created_at" | "customerName" | "mobileNumber">) => {
-        if (selectedTransaction) {
-            updateMutation.mutate({ id: selectedTransaction.id, data: transactionData });
+    const handleSave = (formData: any) => {
+        if (editingTransaction) {
+            updateMutation.mutate({ ...formData, id: editingTransaction.id });
         } else {
-            createMutation.mutate(transactionData);
+            const totalAmount = formData.totalInstallments * formData.installmentAmount;
+            addMutation.mutate({ ...formData, totalAmount, remainingBalance: totalAmount });
         }
     };
 
-    const handleEditTransaction = (transaction: Transaction) => {
-        setSelectedTransaction(transaction);
-        setShowTransactionForm(true);
+    const handleSendReminder = (transaction: Transaction) => {
+        const template = localStorage.getItem('whatsappMessageTemplate') || DEFAULT_MESSAGE_TEMPLATE;
+        const message = template
+            .replace('[CustomerName]', 'عميل')
+            .replace('[Amount]', formatCurrency(transaction.installment_amount))
+            .replace('[Balance]', formatCurrency(transaction.remaining_balance));
+
+        const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
+        window.open(whatsappUrl, '_blank');
     };
 
-    const handleDeleteTransaction = (id: string) => {
-        if (confirm('هل أنت متأكد من حذف هذه المعاملة؟')) {
-            deleteMutation.mutate(id);
-        }
-    };
-
-    const handleAddTransaction = () => {
-        setSelectedTransaction(null);
-        setShowTransactionForm(true);
-    };
-
-    const handleAddPayment = (transaction: Transaction) => {
-        setPaymentTransaction(transaction);
-        setShowPaymentForm(true);
-    };
-
-    if (transactionsError) {
-        return <div className="text-center text-red-600">خطأ في تحميل البيانات: {(transactionsError as Error).message}</div>;
-    }
+    if (isLoadingTransactions || isLoadingCustomers) return <div>جاري التحميل...</div>;
 
     return (
-        <div className="space-y-6">
-            <div className="flex justify-between items-center">
-                <h1 className="text-3xl font-bold">إدارة المعاملات</h1>
-            </div>
-
-            <TransactionList
-                transactions={transactions || []}
-                onAddTransaction={handleAddTransaction}
-                onEditTransaction={handleEditTransaction}
-                onDeleteTransaction={handleDeleteTransaction}
-                onRecordPayment={handleAddPayment}
-                onSendReminder={() => {}}
-            />
-
-            <TransactionForm
-                transaction={selectedTransaction || undefined}
-                customers={customers || []}
-                onSave={handleSaveTransaction}
-                onCancel={() => {
-                    setShowTransactionForm(false);
-                    setSelectedTransaction(null);
-                }}
-                isLoading={createMutation.isPending || updateMutation.isPending}
-            />
-
-            {paymentTransaction && (
-                <PaymentForm
-                    transaction={paymentTransaction}
-                    isOpen={showPaymentForm}
-                    onClose={() => {
-                        setShowPaymentForm(false);
-                        setPaymentTransaction(null);
+        <div>
+            {showForm ? (
+                <TransactionForm
+                    transaction={editingTransaction}
+                    customers={customers || []}
+                    onSave={handleSave}
+                    onCancel={() => {
+                        setShowForm(false);
+                        setEditingTransaction(undefined);
                     }}
+                    isLoading={addMutation.isPending || updateMutation.isPending}
                 />
+            ) : (
+                <>
+                    <TransactionList
+                        transactions={transactions || []}
+                        onAddTransaction={() => {
+                            setEditingTransaction(undefined);
+                            setShowForm(true);
+                        }}
+                        onEditTransaction={(transaction) => {
+                            setEditingTransaction(transaction);
+                            setShowForm(true);
+                        }}
+                        onDeleteTransaction={(id) => deleteMutation.mutate(id)}
+                        onRecordPayment={(transaction) => setPaymentTransaction(transaction)}
+                        onSendReminder={handleSendReminder}
+                    />
+                    {paymentTransaction && (
+                        <PaymentForm
+                            transaction={paymentTransaction}
+                            isOpen={!!paymentTransaction}
+                            onClose={() => setPaymentTransaction(null)}
+                        />
+                    )}
+                </>
             )}
         </div>
     );
