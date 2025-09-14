@@ -7,34 +7,34 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/lib/supabaseClient";
 
-const LoginPage = () => {
-  const [email, setEmail] = useState("admin@example.com"); // Supabase uses email for login
-  const [password, setPassword] = useState("admin123");
+const RegisterPage = () => {
+  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
+    const { error } = await supabase.functions.invoke('create-user', {
+      body: { fullName, email, password },
     });
 
     if (error) {
       toast({
         variant: "destructive",
-        title: "فشل تسجيل الدخول",
+        title: "فشل التسجيل",
         description: error.message,
       });
     } else {
       toast({
-        title: "تم تسجيل الدخول بنجاح",
-        description: "مرحبا بعودتك!",
+        title: "تم التسجيل بنجاح",
+        description: "تم إنشاء حسابك. يمكنك الآن تسجيل الدخول.",
       });
-      navigate("/");
+      navigate("/login");
     }
 
     setIsLoading(false);
@@ -44,13 +44,24 @@ const LoginPage = () => {
     <div className="flex items-center justify-center min-h-screen bg-background">
       <Card className="w-full max-w-sm">
         <CardHeader className="text-right">
-          <CardTitle className="text-2xl">تسجيل الدخول</CardTitle>
+          <CardTitle className="text-2xl">إنشاء حساب جديد</CardTitle>
           <CardDescription>
-            أدخل بريدك الإلكتروني وكلمة المرور للوصول إلى حسابك.
+            أدخل بياناتك لإنشاء حساب جديد.
           </CardDescription>
         </CardHeader>
-        <form onSubmit={handleLogin}>
+        <form onSubmit={handleRegister}>
           <CardContent className="grid gap-4">
+            <div className="grid gap-2 text-right">
+              <Label htmlFor="full-name">الاسم الكامل</Label>
+              <Input
+                id="full-name"
+                type="text"
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                required
+                className="text-right"
+              />
+            </div>
             <div className="grid gap-2 text-right">
               <Label htmlFor="email">البريد الإلكتروني</Label>
               <Input
@@ -76,12 +87,12 @@ const LoginPage = () => {
           </CardContent>
           <CardFooter className="flex flex-col gap-4">
             <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? "جاري تسجيل الدخول..." : "تسجيل الدخول"}
+              {isLoading ? "جاري الإنشاء..." : "إنشاء حساب"}
             </Button>
             <div className="text-sm">
-              ليس لديك حساب؟{" "}
-              <Link to="/register" className="underline">
-                إنشاء حساب
+              لديك حساب بالفعل؟{" "}
+              <Link to="/login" className="underline">
+                تسجيل الدخول
               </Link>
             </div>
           </CardFooter>
@@ -91,4 +102,4 @@ const LoginPage = () => {
   );
 };
 
-export default LoginPage;
+export default RegisterPage;

@@ -27,7 +27,7 @@ const Header = () => {
   ];
 
   if (hasRole('admin')) {
-    navigationItems.push({ to: '/user-management', label: 'إدارة المستخدمين', icon: ShieldCheck });
+    navigationItems.push({ to: '/users', label: 'إدارة المستخدمين', icon: ShieldCheck });
   }
 
   return (

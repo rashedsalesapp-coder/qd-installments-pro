@@ -41,6 +41,7 @@ END;
 $function$;
 
 -- Fix get_dashboard_stats function
+DROP FUNCTION IF EXISTS public.get_dashboard_stats();
 CREATE OR REPLACE FUNCTION public.get_dashboard_stats()
  RETURNS json
  LANGUAGE plpgsql
