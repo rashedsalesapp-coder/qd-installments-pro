@@ -19,8 +19,15 @@ const RegisterPage = () => {
     e.preventDefault();
     setIsLoading(true);
 
-    const { error } = await supabase.functions.invoke('create-user', {
-      body: { fullName, email, password },
+    // Direct signup using Supabase Auth
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          full_name: fullName,
+        }
+      }
     });
 
     if (error) {
@@ -32,7 +39,7 @@ const RegisterPage = () => {
     } else {
       toast({
         title: "تم التسجيل بنجاح",
-        description: "تم إنشاء حسابك. يمكنك الآن تسجيل الدخول.",
+        description: "تم إنشاء حسابك بنجاح. يمكنك الآن تسجيل الدخول.",
       });
       navigate("/login");
     }

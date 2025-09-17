@@ -50,12 +50,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                             .select('role')
                             .eq('user_id', session.user.id);
 
-                        const userRoles = roles?.map(r => r.role) || [];
+                        const userRoles = roles?.map(r => r.role) || ['user'];
                         setUser({ ...session.user, roles: userRoles });
                     } catch (error) {
                         console.error("Error fetching user roles:", error);
                         // In case of error, still set the user but with empty roles.
-                        setUser({ ...session.user, roles: [] });
+                        setUser({ ...session.user, roles: ['user'] });
                     } finally {
                         // ALWAYS set loading to false after we're done.
                         setIsLoading(false);

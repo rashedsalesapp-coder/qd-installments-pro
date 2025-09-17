@@ -8,9 +8,10 @@ import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/lib/supabaseClient";
 
 const LoginPage = () => {
-  const [email, setEmail] = useState("admin@example.com"); // Supabase uses email for login
-  const [password, setPassword] = useState("admin123");
+  const [email, setEmail] = useState(""); 
+  const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [showAdminReset, setShowAdminReset] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -40,6 +41,38 @@ const LoginPage = () => {
     setIsLoading(false);
   };
 
+  const createEmergencyAdmin = async () => {
+    setIsLoading(true);
+    
+    // Create emergency admin account
+    const { data, error } = await supabase.auth.signUp({
+      email: "admin@system.local",
+      password: "Admin123!@#",
+      options: {
+        data: {
+          full_name: "مدير النظام",
+        }
+      }
+    });
+
+    if (error) {
+      toast({
+        variant: "destructive",
+        title: "خطأ في إنشاء حساب المدير",
+        description: error.message,
+      });
+    } else {
+      toast({
+        title: "تم إنشاء حساب المدير الطارئ",
+        description: "البريد: admin@system.local | كلمة المرور: Admin123!@#",
+      });
+      setEmail("admin@system.local");
+      setPassword("Admin123!@#");
+      setShowAdminReset(false);
+    }
+    
+    setIsLoading(false);
+  };
   return (
     <div className="flex items-center justify-center min-h-screen bg-background">
       <Card className="w-full max-w-sm">
@@ -83,6 +116,32 @@ const LoginPage = () => {
               <Link to="/register" className="underline">
                 إنشاء حساب
               </Link>
+            </div>
+            <div className="text-sm border-t pt-4">
+              <Button 
+                type="button" 
+                variant="outline" 
+                size="sm" 
+                onClick={() => setShowAdminReset(!showAdminReset)}
+                className="w-full"
+              >
+                نسيت بيانات المدير؟
+              </Button>
+              {showAdminReset && (
+                <div className="mt-2 p-3 bg-muted rounded-md">
+                  <p className="text-xs mb-2">إنشاء حساب مدير طارئ:</p>
+                  <Button 
+                    type="button" 
+                    variant="destructive" 
+                    size="sm" 
+                    onClick={createEmergencyAdmin}
+                    disabled={isLoading}
+                    className="w-full"
+                  >
+                    إنشاء حساب مدير طارئ
+                  </Button>
+                </div>
+              )}
             </div>
           </CardFooter>
         </form>
