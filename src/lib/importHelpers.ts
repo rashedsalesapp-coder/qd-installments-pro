@@ -58,12 +58,12 @@ export const getTableFields = async (tableName: string) => {
 
 export const deleteImportedData = async (tableName: TableName, olderThanHours?: number) => {
   try {
-    const query = supabase.from(tableName).delete();
+    let query = supabase.from(tableName).delete();
 
     if (olderThanHours) {
       const cutoffTime = new Date();
       cutoffTime.setHours(cutoffTime.getHours() - olderThanHours);
-      query.gte('created_at', cutoffTime.toISOString());
+      query = query.gte('created_at', cutoffTime.toISOString());
     }
 
     const { error } = await query;
@@ -286,7 +286,7 @@ export const TABLE_CONFIGS = {
   },
   transactions: {
     name: 'المعاملات',
-    requiredFields: ['customer_.id', 'cost_price', 'extra_price', 'installment_amount', 'start_date'],
+    requiredFields: ['customer_id', 'cost_price', 'extra_price', 'installment_amount', 'start_date'],
     fields: [
       { value: 'sequence_number', label: 'رقم البيع' },
       { value: 'customer_id', label: 'رقم العميل' },

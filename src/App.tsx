@@ -6,9 +6,11 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import AuthLayout from "@/components/layout/AuthLayout";
 import MainLayout from "@/components/layout/MainLayout";
+import AdminLayout from "@/components/layout/AdminLayout";
 import LoginPage from "@/pages/LoginPage";
 import DashboardPage from "@/pages/DashboardPage";
 import CustomersPage from "@/pages/CustomersPage";
+import ApprovalsPage from "@/pages/Admin/ApprovalsPage";
 import TransactionsPage from "@/pages/TransactionsPage";
 import PaymentsPage from "@/pages/PaymentsPage";
 import DataImportPage from "@/pages/DataImportPage";
@@ -37,6 +39,9 @@ const App = () => (
                 <Route path="/import" element={<DataImportPage />} />
                 <Route path="/reports" element={<ReportsPage />} />
                 <Route path="/settings" element={<SettingsPage />} />
+                <Route element={<AdminLayout />}>
+                  <Route path="/admin/approvals" element={<ApprovalsPage />} />
+                </Route>
               </Route>
             </Route>
             <Route path="*" element={<NotFound />} />
