@@ -4,22 +4,21 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Link } from "react-router-dom";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/lib/supabaseClient";
 
-const LoginPage = () => {
-  const [email, setEmail] = useState("admin@example.com"); // Supabase uses email for login
-  const [password, setPassword] = useState("admin123");
+const RegisterPage = () => {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
-    const { error } = await supabase.auth.signInWithPassword({
+    const { error } = await supabase.auth.signUp({
       email,
       password,
     });
@@ -27,15 +26,15 @@ const LoginPage = () => {
     if (error) {
       toast({
         variant: "destructive",
-        title: "فشل تسجيل الدخول",
+        title: "فشل إنشاء الحساب",
         description: error.message,
       });
     } else {
       toast({
-        title: "تم تسجيل الدخول بنجاح",
-        description: "مرحبا بعودتك!",
+        title: "تم إنشاء الحساب بنجاح",
+        description: "تم إرسال طلبك للموافقة عليه من قبل المسؤول.",
       });
-      navigate("/");
+      navigate("/login");
     }
 
     setIsLoading(false);
@@ -45,12 +44,12 @@ const LoginPage = () => {
     <div className="flex items-center justify-center min-h-screen bg-background">
       <Card className="w-full max-w-sm">
         <CardHeader className="text-right">
-          <CardTitle className="text-2xl">تسجيل الدخول</CardTitle>
+          <CardTitle className="text-2xl">إنشاء حساب جديد</CardTitle>
           <CardDescription>
-            أدخل بريدك الإلكتروني وكلمة المرور للوصول إلى حسابك.
+            أدخل بريدك الإلكتروني وكلمة المرور لإنشاء حساب جديد.
           </CardDescription>
         </CardHeader>
-        <form onSubmit={handleLogin}>
+        <form onSubmit={handleRegister}>
           <CardContent className="grid gap-4">
             <div className="grid gap-2 text-right">
               <Label htmlFor="email">البريد الإلكتروني</Label>
@@ -75,16 +74,10 @@ const LoginPage = () => {
               />
             </div>
           </CardContent>
-          <CardFooter className="flex flex-col">
+          <CardFooter>
             <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? "جاري تسجيل الدخول..." : "تسجيل الدخول"}
+              {isLoading ? "جاري إنشاء الحساب..." : "إنشاء حساب"}
             </Button>
-            <div className="mt-4 text-center text-sm">
-              ليس لديك حساب؟{" "}
-              <Link to="/register" className="underline">
-                إنشاء حساب
-              </Link>
-            </div>
           </CardFooter>
         </form>
       </Card>
@@ -92,4 +85,4 @@ const LoginPage = () => {
   );
 };
 
-export default LoginPage;
+export default RegisterPage;
