@@ -18,6 +18,5 @@ vi.mock('@supabase/supabase-js', () => {
 
   return {
     createClient: vi.fn(() => supabase),
-    // SupabaseClient: vi.fn(() => supabase)
   };
 });
