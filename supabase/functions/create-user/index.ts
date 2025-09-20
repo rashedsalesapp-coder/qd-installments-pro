@@ -40,21 +40,6 @@ serve(async (req) => {
       });
     }
 
-    // Assign default role to the newly created user
-    const { error: roleError } = await supabaseAdmin
-      .from('user_roles')
-      .insert({
-        user_id: data.user.id,
-        role: 'user'
-      });
-
-    if (roleError) {
-      return new Response(JSON.stringify({ error: 'Database error creating new user' }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 500,
-      });
-    }
-
     return new Response(JSON.stringify({ user: data.user }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200,

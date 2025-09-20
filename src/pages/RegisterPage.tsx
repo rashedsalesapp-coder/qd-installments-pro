@@ -19,15 +19,14 @@ const RegisterPage = () => {
     e.preventDefault();
     setIsLoading(true);
 
-    // Direct signup using Supabase Auth
-    const { data, error } = await supabase.auth.signUp({
+    const { error } = await supabase.auth.signUp({
       email,
       password,
       options: {
         data: {
           full_name: fullName,
-        }
-      }
+        },
+      },
     });
 
     if (error) {
@@ -39,7 +38,7 @@ const RegisterPage = () => {
     } else {
       toast({
         title: "تم التسجيل بنجاح",
-        description: "تم إنشاء حسابك بنجاح. يمكنك الآن تسجيل الدخول.",
+        description: "تم إنشاء حسابك. يرجى التحقق من بريدك الإلكتروني للتفعيل إذا لزم الأمر.",
       });
       navigate("/login");
     }
