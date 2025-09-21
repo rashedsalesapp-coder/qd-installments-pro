@@ -40,7 +40,6 @@ const ReportsPage = () => {
         const reportData = transactions.map(t => {
             const now = new Date();
             const transactionDate = format(new Date(t.created_at), 'yyyy-MM-dd');
-            const mobileNumber = '';
             const dueDate = format(setDate(now, 20), 'dd/MM/yyyy');
             const expiryDate = format(addMonths(now, 2), 'yyyy-MM-dd');
 
@@ -49,10 +48,10 @@ const ReportsPage = () => {
             return {
                 description: `${t.id.substring(0, 8)} - ${transactionDate} - ${t.installment_amount}`,
                 amount: t.installment_amount,
-                firstName: 'غير محدد',
+                firstName: t.customerName,
                 lastName: '',
                 emailAddress: 'email@mail.com',
-                mobileNumber: mobileNumber.startsWith('965') ? mobileNumber : `965${mobileNumber}`,
+                mobileNumber: t.mobileNumber.startsWith('965') ? t.mobileNumber : `965${t.mobileNumber}`,
                 dueDate: dueDate,
                 reference: t.id,
                 notes: `Installment ${installmentNumber}`,
@@ -64,7 +63,7 @@ const ReportsPage = () => {
             'Description', 'Amount', 'First Name', 'Last Name', 'Email Address',
             'Mobile Number', 'Due Date', 'Reference', 'Notes', 'Expiry'
         ];
-        const worksheet = XLSX.utils.json_to_sheet(reportData, { header: headers });
+        const worksheet = XLSX.utils.json_to_sheet(reportData, { header: headers, skipHeader: true });
         const workbook = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(workbook, worksheet, 'Payments');
         XLSX.writeFile(workbook, `Monthly_Payment_Report_${format(new Date(), 'yyyy_MM')}.xlsx`);
