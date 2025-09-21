@@ -154,7 +154,7 @@ export const importData = async (
                     case 'extra_price':
                     case 'installment_amount':
                       const amount = Number(row[sourceField]);
-                      if (isNaN(amount) || amount <= 0) {
+                      if (isNaN(amount) || amount < 0) {
                         throw new Error(`قيمة غير صالحة في حقل ${targetField}`);
                       }
                       newRow[targetField] = amount;
