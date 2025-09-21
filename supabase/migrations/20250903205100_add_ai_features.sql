@@ -34,12 +34,14 @@ DECLARE
   total_debt DECIMAL;
   total_paid DECIMAL;
 BEGIN
-  -- Calculate late payments in last 6 months
-  SELECT COUNT(*) INTO late_payments
-  FROM payments p
-  WHERE p.customer_id = customer_id_param
-    AND p.payment_date > p.due_date
-    AND p.payment_date > NOW() - INTERVAL '6 months';
+  -- This logic is flawed as payments do not have a due_date.
+  -- Setting to 0 to prevent errors until logic can be improved.
+  late_payments := 0;
+  -- SELECT COUNT(*) INTO late_payments
+  -- FROM payments p
+  -- WHERE p.customer_id = customer_id_param
+  --   AND p.payment_date > p.due_date
+  --   AND p.payment_date > NOW() - INTERVAL '6 months';
   
   -- Deduct points for late payments
   IF late_payments > 0 THEN
@@ -49,11 +51,11 @@ BEGIN
 
   -- Calculate debt ratio
   SELECT 
-    COALESCE(SUM(t.totalamount), 0),
-    COALESCE(SUM(t.amountpaid), 0)
+    COALESCE(SUM(t.amount), 0),
+    COALESCE(SUM(t.amount - t.remaining_balance), 0)
   INTO total_debt, total_paid
   FROM transactions t
-  WHERE t.customerid = customer_id_param;
+  WHERE t.customer_id = customer_id_param;
 
   IF total_debt > 0 AND (total_paid / total_debt) < 0.3 THEN
     score_val := score_val - 20;
@@ -88,31 +90,34 @@ DECLARE
   current_amount DECIMAL;
 BEGIN
   -- Get transaction details
-  SELECT customerid, firstinstallmentdate + (
-    FLOOR(EXTRACT(EPOCH FROM NOW() - firstinstallmentdate) / (30 * 24 * 60 * 60)) * INTERVAL '1 month'
+  SELECT customer_id, start_date + (
+    FLOOR(EXTRACT(EPOCH FROM NOW() - start_date) / (30 * 24 * 60 * 60)) * INTERVAL '1 month'
   )::DATE INTO customer_id_val, next_payment_date_val
   FROM transactions
   WHERE id = transaction_id_param;
 
-  -- Calculate recent late payments
-  SELECT COUNT(*) INTO late_payments_count
-  FROM payments p
-  WHERE p.customer_id = customer_id_val
-    AND p.payment_date > p.due_date
-    AND p.payment_date > NOW() - INTERVAL '3 months';
+  -- This part has a logical error as payments don't have a due_date.
+  -- For now, we will comment it out to prevent crashes.
+  -- A more sophisticated approach would be needed to determine late payments.
+  late_payments_count := 0;
+  -- SELECT COUNT(*) INTO late_payments_count
+  -- FROM payments p
+  -- WHERE p.customer_id = customer_id_val
+  --   AND p.payment_date > p.due_date
+  --   AND p.payment_date > NOW() - INTERVAL '3 months';
 
   -- Add probability based on late payments
   probability_val := probability_val + (LEAST(late_payments_count, 3) * 0.2);
 
   -- Compare current amount with average
   SELECT 
-    t.installmentamount,
+    t.installment_amount,
     AVG(p.amount)
   INTO current_amount, avg_payment
   FROM transactions t
-  LEFT JOIN payments p ON p.customer_id = t.customerid
+  LEFT JOIN payments p ON p.customer_id = t.customer_id
   WHERE t.id = transaction_id_param
-  GROUP BY t.installmentamount;
+  GROUP BY t.installment_amount;
 
   IF current_amount > avg_payment * 1.2 THEN
     probability_val := probability_val + 0.2;
