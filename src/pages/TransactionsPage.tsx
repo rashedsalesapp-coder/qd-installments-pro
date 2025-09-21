@@ -9,8 +9,8 @@ import { supabase } from "@/lib/supabaseClient";
 import { formatCurrency } from "@/lib/utils-arabic";
 
 // --- Supabase API Functions ---
-const getTransactions = async (): Promise<{ data: Transaction[], count: number }> => {
-    const { data, error, count } = await supabase
+const getTransactions = async (): Promise<Transaction[]> => {
+    const { data, error } = await supabase
         .from('transactions')
         .select(`
             id,
@@ -29,7 +29,7 @@ const getTransactions = async (): Promise<{ data: Transaction[], count: number }
             notes,
             created_at,
             customers (id, full_name, mobile_number)
-        `, { count: 'exact' })
+        `)
         .order('created_at', { ascending: false })
         .limit(50); // Limit to latest 50 transactions for better performance
 
@@ -82,12 +82,10 @@ const TransactionsPage = () => {
     const [editingTransaction, setEditingTransaction] = useState<Transaction | undefined>();
     const [paymentTransaction, setPaymentTransaction] = useState<Transaction | null>(null);
 
-    const { data, isLoading: isLoadingTransactions } = useQuery<{ data: Transaction[], count: number }>({
+    const { data: transactions, isLoading: isLoadingTransactions } = useQuery<Transaction[]>({
         queryKey: ["transactions"],
         queryFn: getTransactions,
     });
-    const transactions = data?.data;
-    const transactionsCount = data?.count;
 
     const { data: customers, isLoading: isLoadingCustomers } = useQuery<Customer[]>({
         queryKey: ["customers"],
@@ -163,7 +161,6 @@ const TransactionsPage = () => {
                 <>
                     <TransactionList
                         transactions={transactions || []}
-                        transactionsCount={transactionsCount || 0}
                         onAddTransaction={() => {
                             setEditingTransaction(undefined);
                             setShowForm(true);

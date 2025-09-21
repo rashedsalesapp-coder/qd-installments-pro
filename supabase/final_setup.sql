@@ -90,14 +90,12 @@ BEGIN
     END IF;
 
     SELECT json_build_object(
-        'total_customers', (SELECT COUNT(*) FROM public.customers),
-        'total_active_transactions', (SELECT COUNT(*) FROM public.transactions WHERE remaining_balance > 0),
-        'total_revenue', (SELECT COALESCE(SUM(amount), 0) FROM public.transactions),
-        'total_cost', (SELECT COALESCE(SUM(cost_price), 0) FROM public.transactions),
-        'total_profit', (SELECT COALESCE(SUM(profit), 0) FROM public.transactions),
-        'total_outstanding', (SELECT COALESCE(SUM(remaining_balance), 0) FROM public.transactions),
-        'total_overdue', (SELECT COALESCE(SUM(remaining_balance), 0) FROM public.transactions WHERE status = 'overdue'),
-        'overdue_transactions', (SELECT COUNT(*) FROM public.transactions WHERE status = 'overdue')
+        'totalCustomers', (SELECT COUNT(*) FROM public.customers),
+        'totalActiveTransactions', (SELECT COUNT(*) FROM public.transactions WHERE "remainingBalance" > 0),
+        'totalRevenue', (SELECT COALESCE(SUM("totalAmount"), 0) FROM public.transactions),
+        'totalOutstanding', (SELECT COALESCE(SUM("remainingBalance"), 0) FROM public.transactions),
+        'totalOverdue', (SELECT COALESCE(SUM("overdueAmount"), 0) FROM public.transactions),
+        'overdueTransactions', (SELECT COUNT(*) FROM public.transactions WHERE "overdueAmount" > 0)
     ) INTO stats;
 
     RETURN stats;
