@@ -15,6 +15,7 @@ import { Edit, Trash2, DollarSign, MessageCircle } from "lucide-react";
 
 interface TransactionListProps {
   transactions: Transaction[];
+  transactionsCount: number;
   onAddTransaction: () => void;
   onEditTransaction: (transaction: Transaction) => void;
   onDeleteTransaction: (transactionId: string) => void;
@@ -24,6 +25,7 @@ interface TransactionListProps {
 
 const TransactionList = ({
   transactions,
+  transactionsCount,
   onAddTransaction,
   onEditTransaction,
   onDeleteTransaction,
@@ -48,7 +50,7 @@ const TransactionList = ({
   return (
     <div>
       <div className="flex justify-between items-center mb-4">
-        <h2 className="text-2xl font-bold">إدارة المعاملات</h2>
+        <h2 className="text-2xl font-bold">إدارة المعاملات ({transactionsCount})</h2>
         <Button onClick={onAddTransaction}>إضافة معاملة جديدة</Button>
       </div>
       <Table>
