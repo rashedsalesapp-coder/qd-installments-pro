@@ -23,9 +23,10 @@ vi.mock('xlsx', async () => {
         writeFile: vi.fn(),
         utils: {
             ...actual.utils,
-            json_to_sheet: vi.fn(),
+            json_to_sheet: vi.fn(() => ({})), // Return a dummy worksheet object
             book_new: vi.fn(() => ({ Sheets: {}, SheetNames: [] })),
             book_append_sheet: vi.fn(),
+            sheet_add_aoa: vi.fn(),
         },
     };
 });
@@ -72,12 +73,11 @@ describe('ReportsPage', () => {
     // Click the button
     fireEvent.click(button);
 
-    // Check if json_to_sheet was called with the correct options
-    expect(XLSX.utils.json_to_sheet).toHaveBeenCalledWith(
-      expect.any(Array),
-      expect.objectContaining({
-        skipHeader: true,
-      })
+    // Check if sheet_add_aoa was called with the correct headers
+    expect(XLSX.utils.sheet_add_aoa).toHaveBeenCalledWith(
+      expect.any(Object),
+      [['Description', 'Amount', 'First Name', 'Last Name', 'Email Address', 'Mobile Number', 'Due Date', 'Reference', 'Notes', 'Expiry']],
+      { origin: 'A1' }
     );
 
     // Check if the data passed to json_to_sheet has the correct firstName
