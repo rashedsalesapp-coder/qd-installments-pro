@@ -4,7 +4,6 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
-import ErrorBoundary from "@/components/ErrorBoundary";
 import AuthLayout from "@/components/layout/AuthLayout";
 import MainLayout from "@/components/layout/MainLayout";
 import AdminLayout from "@/components/layout/AdminLayout";
@@ -20,13 +19,7 @@ import ReportsPage from "@/pages/ReportsPage";
 import SettingsPage from "@/pages/SettingsPage";
 import NotFound from "./pages/NotFound";
 
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      refetchOnWindowFocus: false,
-    },
-  },
-});
+const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -34,10 +27,9 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <ErrorBoundary>
-          <AuthProvider>
-            <Routes>
-              <Route path="/login" element={<LoginPage />} />
+        <AuthProvider>
+          <Routes>
+            <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
             <Route element={<AuthLayout />}>
               <Route element={<MainLayout />}>
@@ -55,9 +47,8 @@ const App = () => (
               </Route>
             </Route>
             <Route path="*" element={<NotFound />} />
-            </Routes>
-          </AuthProvider>
-        </ErrorBoundary>
+          </Routes>
+        </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
