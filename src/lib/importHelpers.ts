@@ -216,33 +216,22 @@ export const importData = async (file: File, config: ImportConfig) => {
           }
         }
 
-        if (errors.length > 0) {
-          // If there are errors, do not import anything.
-          // Resolve with error details for reporting.
-          return resolve({
-            imported: 0,
-            errors: errors,
-            message: `فشل الاستيراد. تم العثور على ${errors.length} أخطاء.`
-          });
+        // After processing all rows, attempt to insert the valid ones
+        if (validRows.length > 0) {
+          const { error: insertError } = await supabase.from(config.tableName).insert(validRows);
+          if (insertError) {
+            // If the whole batch insert fails, reject with a clear error.
+            // This is a critical error, likely a database or RLS issue.
+            return reject(new Error(`Database error during insert: ${insertError.message}`));
+          }
         }
 
-        if (validRows.length === 0) {
-          return resolve({ imported: 0, errors: [], message: 'لا توجد بيانات صالحة للاستيراد.' });
-        }
-
-        // Perform the insert operation
-        const { error: insertError } = await supabase.from(config.tableName).insert(validRows);
-
-        if (insertError) {
-          // If Supabase returns an error, report it
-          reject(new Error(`خطأ في قاعدة البيانات: ${insertError.message}`));
-        } else {
-          resolve({
-            imported: validRows.length,
-            errors: [],
-            message: `تم استيراد ${validRows.length} سجلات بنجاح.`,
-          });
-        }
+        // Always resolve with a summary of what was imported and what failed.
+        resolve({
+          imported: validRows.length,
+          errors: errors,
+          message: `Import complete. Successfully imported ${validRows.length} rows. Skipped ${errors.length} rows with errors.`
+        });
 
       } catch (error: any) {
         reject(error);
