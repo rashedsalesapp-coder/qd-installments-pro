@@ -18,14 +18,11 @@ interface CustomerListProps {
 const CustomerList = ({ customers, onAddCustomer, onEditCustomer, onViewCustomer }: CustomerListProps) => {
   const [searchTerm, setSearchTerm] = useState("");
 
-  const filteredCustomers = customers.filter(customer => {
-    const lowerCaseSearchTerm = searchTerm.toLowerCase();
-    return (
-      customer.full_name?.toLowerCase().includes(lowerCaseSearchTerm) ||
-      customer.mobile_number?.includes(searchTerm) ||
-      customer.civil_id?.includes(searchTerm)
-    );
-  });
+  const filteredCustomers = customers.filter(customer =>
+    customer.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    customer.mobile_number.includes(searchTerm) ||
+    customer.civil_id.includes(searchTerm)
+  );
 
   return (
     <div className="space-y-6">
@@ -75,7 +72,7 @@ const CustomerList = ({ customers, onAddCustomer, onEditCustomer, onViewCustomer
             <TableBody>
               {filteredCustomers.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                     لا توجد عملاء مطابقون للبحث
                   </TableCell>
                 </TableRow>

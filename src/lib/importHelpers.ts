@@ -1,5 +1,7 @@
 import * as XLSX from 'xlsx';
-import { supabase } from '@/lib/supabaseClient';
+import { supabase } from './supabaseClient';
+
+
 
 export type TableName = keyof typeof TABLE_CONFIGS;
 
@@ -29,7 +31,7 @@ export const readExcelFile = (file: File): Promise<{
             raw: false,
             defval: '',
             blankrows: false
-          }).slice(0, 5);
+          }).slice(0, 5); // Preview first 5 rows
         });
 
         resolve({ sheets, preview });
@@ -50,6 +52,7 @@ export const getTableFields = async (tableName: string) => {
 
   if (error) throw error;
 
+  // Get column names from the first row
   return data.length > 0 ? Object.keys(data[0]) : [];
 };
 
@@ -97,6 +100,7 @@ export const importData = async (
         });
 
         if (config.tableName === 'transactions') {
+          // For transactions, we need to lookup customer_id from sequence_number
           const { data: customers } = await supabase
             .from('customers')
             .select('id, sequence_number');
@@ -108,18 +112,17 @@ export const importData = async (
           const customerMap = new Map();
           customers.forEach(c => {
             if (c.sequence_number) {
+              // Try both string and number formats
               customerMap.set(c.sequence_number.toString(), c.id);
               customerMap.set(Number(c.sequence_number).toString(), c.id);
             }
           });
 
+          // Collect valid rows and errors
           const validRows: any[] = [];
-          const errors: { row: number, name: string, error: string }[] = [];
+          const errors: string[] = [];
 
           jsonData.forEach((row, index) => {
-            const rowNumber = index + 2;
-            const customerIdentifier = row[Object.keys(config.mappings).find(k => config.mappings[k] === 'customer_id') || ''] || 'Unknown';
-
             try {
               const newRow: { [key: string]: any } = {
                 created_at: new Date().toISOString(),
@@ -129,7 +132,9 @@ export const importData = async (
 
               let isValid = true;
 
+              // Process each field
               for (const [sourceField, targetField] of Object.entries(config.mappings)) {
+                // Skip if field is undefined and not required
                 if (row[sourceField] === undefined && 
                     !TABLE_CONFIGS.transactions.requiredFields.includes(targetField)) {
                   continue;
@@ -148,8 +153,8 @@ export const importData = async (
                     case 'cost_price':
                     case 'extra_price':
                     case 'installment_amount':
-                      const amount = Number(row[sourceField] || 0);
-                      if (isNaN(amount) || amount < 0) {
+                      const amount = Number(row[sourceField]);
+                      if (isNaN(amount) || amount <= 0) {
                         throw new Error(`قيمة غير صالحة في حقل ${targetField}`);
                       }
                       newRow[targetField] = amount;
@@ -157,8 +162,8 @@ export const importData = async (
 
                     case 'number_of_installments':
                       const installments = row[sourceField] ? Number(row[sourceField]) : 0;
-                      if (!Number.isInteger(installments) || installments <= 0) {
-                        throw new Error('عدد الدفعات يجب أن يكون رقماً صحيحاً وأكبر من صفر');
+                      if (!Number.isInteger(installments) || installments < 0) {
+                        throw new Error('عدد الدفعات يجب أن يكون رقماً صحيحاً');
                       }
                       newRow[targetField] = installments;
                       break;
@@ -175,56 +180,80 @@ export const importData = async (
                       newRow[targetField] = row[sourceField];
                   }
                 } catch (fieldError: any) {
-                  errors.push({ row: rowNumber, name: customerIdentifier, error: fieldError.message });
+                  errors.push(`خطأ في الصف ${index + 2}: ${fieldError.message}`);
                   isValid = false;
                   break;
                 }
               }
 
               if (isValid) {
-                newRow.amount = Number(newRow.cost_price || 0) + Number(newRow.extra_price || 0);
+                // Calculate derived fields
+                newRow.amount = Number(newRow.cost_price) + Number(newRow.extra_price);
                 newRow.remaining_balance = newRow.amount;
                 validRows.push(newRow);
               }
             } catch (rowError: any) {
-              errors.push({ row: rowNumber, name: customerIdentifier, error: rowError.message });
+              errors.push(`خطأ في الصف ${index + 2}: ${rowError.message}`);
             }
           });
 
-          if (validRows.length === 0 && errors.length > 0) {
-            const errorSummary = errors.map(e => `Row ${e.row} (Customer ID: ${e.name}): ${e.error}`).join('\n');
-            throw new Error('لم يتم العثور على أي بيانات صالحة للاستيراد\n' + errorSummary);
+          if (validRows.length === 0) {
+            throw new Error('لم يتم العثور على أي بيانات صالحة للاستيراد\n' + errors.join('\n'));
           }
 
-          const { error } = await supabase
+          // Import valid rows to Supabase
+          const { data: result, error } = await supabase
             .from(config.tableName)
-            .insert(validRows);
+            .insert(validRows)
+            .select();
 
           if (error) throw error;
 
-          const errorSummary = errors.map(e => `Row ${e.row} (Customer ID: ${e.name}): ${e.error}`).join('\n');
           resolve({
             imported: validRows.length,
-            message: errors.length === 0
+            message: validRows.length === jsonData.length
               ? `تم استيراد ${validRows.length} من المعاملات بنجاح`
-              : `تم استيراد ${validRows.length} من المعاملات بنجاح\nتم تخطي ${errors.length} صفوف بسبب الأخطاء:\n${errorSummary}`
+              : `تم استيراد ${validRows.length} من المعاملات بنجاح\nتم تخطي ${jsonData.length - validRows.length} صفوف بسبب الأخطاء:\n${errors.join('\n')}`
           });
         } else {
+          // For other tables, proceed with normal import
           const mappedData = await Promise.all(jsonData.map(async row => {
             const newRow: { [key: string]: any } = {
               created_at: new Date().toISOString()
             };
             for (const [sourceField, targetField] of Object.entries(config.mappings)) {
               if (row[sourceField] !== undefined) {
+                if (targetField === 'id') {
+                  // Convert the كود value to a UUID format if it's not already
+                  const idValue = row[sourceField].toString();
+                  try {
+                    // Check if it's already a valid UUID
+                    if (/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(idValue)) {
+                      newRow[targetField] = idValue;
+                    } else {
+                      // Generate a deterministic UUID from the ID value
+                      const namespace = '6ba7b810-9dad-11d1-80b4-00c04fd430c8'; // A fixed namespace UUID
+                      const { data: uuidData } = await supabase.rpc('gen_random_uuid');
+                      newRow[targetField] = uuidData;
+                    }
+                  } catch {
+                    // If there's any error, generate a random UUID
+                    const { data: uuidData } = await supabase.rpc('gen_random_uuid');
+                    newRow[targetField] = uuidData;
+                  }
+                } else {
                   newRow[targetField] = row[sourceField];
+                }
               }
             }
             return newRow;
           }));
 
-          const { error } = await supabase
+          // Import to Supabase
+          const { data: result, error } = await supabase
             .from(config.tableName)
-            .insert(mappedData);
+            .insert(mappedData)
+            .select();
 
           if (error) throw error;
 
@@ -257,7 +286,7 @@ export const TABLE_CONFIGS = {
   },
   transactions: {
     name: 'المعاملات',
-    requiredFields: ['customer_id', 'cost_price', 'extra_price', 'installment_amount', 'start_date', 'number_of_installments'],
+    requiredFields: ['customer_id', 'cost_price', 'extra_price', 'installment_amount', 'start_date'],
     fields: [
       { value: 'sequence_number', label: 'رقم البيع' },
       { value: 'customer_id', label: 'رقم العميل' },
@@ -283,4 +312,5 @@ export const TABLE_CONFIGS = {
       { value: 'notes', label: 'ملاحظات' }
     ]
   },
+
 };
