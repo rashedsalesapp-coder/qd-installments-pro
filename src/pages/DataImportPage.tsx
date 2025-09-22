@@ -13,6 +13,7 @@ import { readExcelFile, importData, TABLE_CONFIGS, ImportConfig } from '@/lib/im
 type ImportError = {
   row: number;
   message: string;
+  originalData: any;
 };
 
 const DataImportPage = () => {
@@ -68,15 +69,27 @@ const DataImportPage = () => {
   };
 
   const downloadErrorCsv = () => {
-    if (importErrors.length === 0) return;
+    if (importErrors.length === 0 || !importErrors[0].originalData) return;
 
-    const headers = ['Row Number', 'Error Message'];
+    // Get headers from the original data of the first error
+    const originalHeaders = Object.keys(importErrors[0].originalData);
+    const headers = [...originalHeaders, 'رسالة الخطأ'];
+
     const csvContent = [
       headers.join(','),
-      ...importErrors.map(e => `${e.row},"${e.message.replace(/"/g, '""')}"`)
+      ...importErrors.map(error => {
+        const originalValues = originalHeaders.map(header => {
+          const value = error.originalData[header];
+          // Escape quotes and wrap in quotes if value contains a comma
+          const stringValue = String(value ?? '').replace(/"/g, '""');
+          return `"${stringValue}"`;
+        });
+        const errorMessage = `"${error.message.replace(/"/g, '""')}"`;
+        return [...originalValues, errorMessage].join(',');
+      })
     ].join('\n');
 
-    const bom = new Uint8Array([0xEF, 0xBB, 0xBF]); // UTF-8 BOM
+    const bom = new Uint8Array([0xEF, 0xBB, 0xBF]); // UTF-8 BOM for Excel
     const blob = new Blob([bom, csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);

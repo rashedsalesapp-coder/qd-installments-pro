@@ -96,7 +96,7 @@ export const importData = async (file: File, config: ImportConfig) => {
         });
 
         const validRows: any[] = [];
-        const errors: { row: number; message: string }[] = [];
+        const errors: { row: number; message: string, originalData: any }[] = [];
 
         // Pre-fetch data for lookups if needed
         let customerMap = new Map();
@@ -132,7 +132,7 @@ export const importData = async (file: File, config: ImportConfig) => {
 
             // Basic validation for required fields
             if (TABLE_CONFIGS[config.tableName].requiredFields.includes(targetField) && (value === undefined || value === '')) {
-              errors.push({ row: index + 2, message: `الحقل المطلوب '${sourceField}' فارغ.` });
+              errors.push({ row: index + 2, message: `الحقل المطلوب '${sourceField}' فارغ.`, originalData: row });
               rowHasError = true;
               continue;
             }
@@ -200,7 +200,7 @@ export const importData = async (file: File, config: ImportConfig) => {
                   break;
               }
             } catch (error: any) {
-              errors.push({ row: index + 2, message: `${error.message}` });
+              errors.push({ row: index + 2, message: `${error.message}`, originalData: row });
               rowHasError = true;
             }
           }
@@ -256,7 +256,7 @@ export const importData = async (file: File, config: ImportConfig) => {
 export const TABLE_CONFIGS = {
   customers: {
     name: 'العملاء',
-    requiredFields: ['full_name', 'mobile_number'],
+    requiredFields: ['full_name'],
     fields: [
       { value: 'id', label: 'كود' },
       { value: 'sequence_number', label: 'م العميل' },
@@ -268,7 +268,7 @@ export const TABLE_CONFIGS = {
   },
   transactions: {
     name: 'المعاملات',
-    requiredFields: ['customer_id', 'cost_price', 'extra_price', 'installment_amount', 'start_date'],
+    requiredFields: [],
     fields: [
       { value: 'sequence_number', label: 'رقم البيع' },
       { value: 'customer_id', label: 'رقم العميل' },
