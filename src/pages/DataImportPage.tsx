@@ -6,15 +6,21 @@ import { useToast } from '@/components/ui/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { DeleteDataDialog } from "@/components/data/DeleteDataDialog";
-import { readExcelFile, importData, deleteImportedData, TABLE_CONFIGS, ImportConfig } from '@/lib/importHelpers';
+import { readExcelFile, importData, TABLE_CONFIGS, ImportConfig } from '@/lib/importHelpers';
+
+type ImportError = {
+  row: number;
+  message: string;
+};
 
 const DataImportPage = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [file, setFile] = useState<File | null>(null);
   const [sheets, setSheets] = useState<string[]>([]);
+  const [importErrors, setImportErrors] = useState<ImportError[]>([]);
 
   const [preview, setPreview] = useState<{ [sheet: string]: any[] }>({});
   const [selectedSheet, setSelectedSheet] = useState<string>('');
@@ -26,13 +32,24 @@ const DataImportPage = () => {
       if (!file) throw new Error('No file selected');
       return importData(file, config);
     },
-    onSuccess: (data: any) => {
-      toast({ title: "Success", description: data.message });
-      queryClient.invalidateQueries({ queryKey: [selectedTable, 'dashboardStats'] });
-      resetForm();
+    onSuccess: (result: any) => {
+      if (result.errors && result.errors.length > 0) {
+        setImportErrors(result.errors);
+        toast({
+          title: "فشل الاستيراد",
+          description: `تم العثور على ${result.errors.length} أخطاء. يرجى مراجعة التقرير وتصحيح الملف.`,
+          variant: "destructive",
+        });
+      } else {
+        toast({ title: "نجاح", description: result.message });
+        queryClient.invalidateQueries({ queryKey: [selectedTable]});
+        queryClient.invalidateQueries({ queryKey: ['dashboardStats']});
+        resetForm();
+      }
     },
     onError: (error: any) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: "خطأ فادح", description: error.message, variant: "destructive" });
+      setImportErrors([]);
     },
   });
 
@@ -42,6 +59,34 @@ const DataImportPage = () => {
     setPreview({});
     setSelectedSheet('');
     setMapping({});
+    setImportErrors([]);
+    // Reset the file input visually
+    const fileInput = document.getElementById('file-input') as HTMLInputElement;
+    if (fileInput) {
+      fileInput.value = '';
+    }
+  };
+
+  const downloadErrorCsv = () => {
+    if (importErrors.length === 0) return;
+
+    const headers = ['Row Number', 'Error Message'];
+    const csvContent = [
+      headers.join(','),
+      ...importErrors.map(e => `${e.row},"${e.message.replace(/"/g, '""')}"`)
+    ].join('\n');
+
+    const bom = new Uint8Array([0xEF, 0xBB, 0xBF]); // UTF-8 BOM
+    const blob = new Blob([bom, csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', 'import_errors.csv');
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -195,7 +240,44 @@ const DataImportPage = () => {
         </Card>
       )}
 
-      {Object.keys(mapping).length > 0 && (
+      {importErrors.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>تقرير الأخطاء</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Alert variant="destructive" className="mb-4">
+              <AlertTitle>فشل عملية الاستيراد</AlertTitle>
+              <AlertDescription>
+                تم العثور على {importErrors.length} أخطاء في الملف. يرجى تحميل التقرير، تصحيح الأخطاء، ثم إعادة محاولة رفع الملف.
+              </AlertDescription>
+            </Alert>
+            <Button onClick={downloadErrorCsv} className="mb-4">
+              تحميل تقرير الأخطاء (CSV)
+            </Button>
+            <div className="border rounded-lg overflow-hidden">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>رقم الصف في الملف</TableHead>
+                    <TableHead>رسالة الخطأ</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {importErrors.slice(0, 10).map((error, i) => (
+                    <TableRow key={i}>
+                      <TableCell>{error.row}</TableCell>
+                      <TableCell>{error.message}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {Object.keys(mapping).length > 0 && importErrors.length === 0 && (
         <Card>
           <CardHeader>
             <CardTitle>الخطوة 3: معاينة البيانات والتحقق منها</CardTitle>
@@ -218,12 +300,12 @@ const DataImportPage = () => {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {mappedData.map((row, i) => (
+                      {mappedData.slice(0, 5).map((row, i) => (
                         <TableRow key={i}>
                           {TABLE_CONFIGS[selectedTable].fields
                             .filter(field => Object.values(mapping).includes(field.value))
                             .map(field => (
-                              <TableCell key={field.value}>{row[field.value]}</TableCell>
+                              <TableCell key={field.value}>{String(row[field.value] ?? '')}</TableCell>
                             ))}
                         </TableRow>
                       ))}

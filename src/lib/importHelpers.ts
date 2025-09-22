@@ -80,188 +80,170 @@ export const deleteImportedData = async (tableName: TableName, olderThanHours?: 
   }
 };
 
-export const importData = async (
-  file: File,
-  config: ImportConfig
-) => {
-  const reader = new FileReader();
-  
+// A more robust and generic data import function
+export const importData = async (file: File, config: ImportConfig) => {
   return new Promise((resolve, reject) => {
+    const reader = new FileReader();
     reader.onload = async (e) => {
       try {
         const data = new Uint8Array(e.target?.result as ArrayBuffer);
-        const workbook = XLSX.read(data, { type: 'array' });
-        
+        const workbook = XLSX.read(data, { type: "array" });
         const worksheet = workbook.Sheets[config.sheetName];
         const jsonData = XLSX.utils.sheet_to_json(worksheet, {
           raw: false,
-          defval: '',
-          blankrows: false
+          defval: "",
+          blankrows: false,
         });
 
-        if (config.tableName === 'transactions') {
-          // For transactions, we need to lookup customer_id from sequence_number
-          const { data: customers } = await supabase
-            .from('customers')
-            .select('id, sequence_number');
+        const validRows: any[] = [];
+        const errors: { row: number; message: string }[] = [];
 
-          if (!customers) {
-            throw new Error('فشل في جلب بيانات العملاء للتحقق');
-          }
+        // Pre-fetch data for lookups if needed
+        let customerMap = new Map();
+        if (config.tableName === 'transactions' || config.tableName === 'payments') {
+            const { data: customers } = await supabase.from('customers').select('id, sequence_number');
+            if (!customers) throw new Error('Could not fetch customers for validation.');
+            customers.forEach(c => {
+                if (c.sequence_number) {
+                    customerMap.set(c.sequence_number.toString(), c.id);
+                }
+            });
+        }
 
-          const customerMap = new Map();
-          customers.forEach(c => {
-            if (c.sequence_number) {
-              // Try both string and number formats
-              customerMap.set(c.sequence_number.toString(), c.id);
-              customerMap.set(Number(c.sequence_number).toString(), c.id);
+        let transactionMap = new Map();
+        if (config.tableName === 'payments') {
+            const { data: transactions } = await supabase.from('transactions').select('id, sequence_number');
+            if (!transactions) throw new Error('Could not fetch transactions for validation.');
+            transactions.forEach(t => {
+                if (t.sequence_number) {
+                    transactionMap.set(t.sequence_number.toString(), t.id);
+                }
+            });
+        }
+
+        for (const [index, row] of jsonData.entries()) {
+          const newRow: { [key: string]: any } = {};
+          let rowHasError = false;
+
+          for (const [sourceField, targetField] of Object.entries(config.mappings)) {
+            if (rowHasError) continue;
+
+            const value = row[sourceField];
+
+            // Basic validation for required fields
+            if (TABLE_CONFIGS[config.tableName].requiredFields.includes(targetField) && (value === undefined || value === '')) {
+              errors.push({ row: index + 2, message: `الحقل المطلوب '${sourceField}' فارغ.` });
+              rowHasError = true;
+              continue;
             }
-          });
 
-          // Collect valid rows and errors
-          const validRows: any[] = [];
-          const errors: string[] = [];
+            if (value === undefined) continue;
 
-          jsonData.forEach((row, index) => {
+            // --- Field-specific processing and validation ---
             try {
-              const newRow: { [key: string]: any } = {
-                created_at: new Date().toISOString(),
-                status: 'active',
-                has_legal_case: false
-              };
-
-              let isValid = true;
-
-              // Process each field
-              for (const [sourceField, targetField] of Object.entries(config.mappings)) {
-                // Skip if field is undefined and not required
-                if (row[sourceField] === undefined && 
-                    !TABLE_CONFIGS.transactions.requiredFields.includes(targetField)) {
-                  continue;
-                }
-
-                try {
-                  switch (targetField) {
-                    case 'customer_id':
-                      const customerId = customerMap.get(row[sourceField].toString());
-                      if (!customerId) {
-                        throw new Error(`لم يتم العثور على عميل برقم ${row[sourceField]}`);
-                      }
-                      newRow[targetField] = customerId;
-                      break;
-
-                    case 'cost_price':
-                    case 'extra_price':
-                    case 'installment_amount':
-                      const amount = Number(row[sourceField]);
-                      if (isNaN(amount) || amount <= 0) {
-                        throw new Error(`قيمة غير صالحة في حقل ${targetField}`);
-                      }
-                      newRow[targetField] = amount;
-                      break;
-
-                    case 'number_of_installments':
-                      const installments = row[sourceField] ? Number(row[sourceField]) : 0;
-                      if (!Number.isInteger(installments) || installments < 0) {
-                        throw new Error('عدد الدفعات يجب أن يكون رقماً صحيحاً');
-                      }
-                      newRow[targetField] = installments;
-                      break;
-
-                    case 'start_date':
-                      const date = new Date(row[sourceField]);
-                      if (isNaN(date.getTime())) {
-                        throw new Error('تاريخ غير صالح');
-                      }
-                      newRow[targetField] = date.toISOString().split('T')[0];
-                      break;
-
-                    default:
-                      newRow[targetField] = row[sourceField];
+              switch (targetField) {
+                // IDs
+                case 'id':
+                  newRow.id = value.toString();
+                  // For customers, we also use the ID as the sequence number for linking
+                  if (config.tableName === 'customers') {
+                    newRow.sequence_number = value.toString();
                   }
-                } catch (fieldError: any) {
-                  errors.push(`خطأ في الصف ${index + 2}: ${fieldError.message}`);
-                  isValid = false;
                   break;
-                }
-              }
+                case 'customer_id':
+                  const customerId = customerMap.get(value.toString());
+                  if (!customerId) throw new Error(`لم يتم العثور على عميل بالرقم '${value}'.`);
+                  newRow.customer_id = customerId;
+                  break;
+                case 'transaction_id':
+                  const transactionId = transactionMap.get(value.toString());
+                  if (!transactionId) throw new Error(`لم يتم العثور على معاملة بالرقم '${value}'.`);
+                  newRow.transaction_id = transactionId;
+                  break;
 
-              if (isValid) {
-                // Calculate derived fields
-                newRow.amount = Number(newRow.cost_price) + Number(newRow.extra_price);
-                newRow.remaining_balance = newRow.amount;
-                validRows.push(newRow);
+                // Numeric fields
+                case 'cost_price':
+                case 'extra_price':
+                case 'installment_amount':
+                case 'amount':
+                  const numValue = Number(value);
+                  if (isNaN(numValue)) throw new Error(`القيمة '${value}' ليست رقماً صالحاً.`);
+                  newRow[targetField] = numValue;
+                  break;
+
+                // Integer fields
+                case 'number_of_installments':
+                  const intValue = Number(value);
+                  if (!Number.isInteger(intValue)) throw new Error(`القيمة '${value}' ليست رقماً صحيحاً.`);
+                  newRow[targetField] = intValue;
+                  break;
+
+                // Date fields
+                case 'start_date':
+                case 'payment_date':
+                  // XLSX reads dates as numbers, we need to convert them
+                  const excelDate = Number(value);
+                  if (isNaN(excelDate)) {
+                    // If it's not a number, try parsing it as a string date
+                    const parsedDate = new Date(value);
+                    if (isNaN(parsedDate.getTime())) throw new Error(`التاريخ '${value}' غير صالح.`);
+                    newRow[targetField] = parsedDate.toISOString().split('T')[0];
+                  } else {
+                    // Formula from https://stackoverflow.com/questions/16229494/converting-excel-date-serial-number-to-date-using-javascript
+                    const jsDate = new Date(Math.round((excelDate - 25569) * 86400 * 1000));
+                    newRow[targetField] = jsDate.toISOString().split('T')[0];
+                  }
+                  break;
+
+                default:
+                  newRow[targetField] = value;
+                  break;
               }
-            } catch (rowError: any) {
-              errors.push(`خطأ في الصف ${index + 2}: ${rowError.message}`);
+            } catch (error: any) {
+              errors.push({ row: index + 2, message: `${error.message}` });
+              rowHasError = true;
             }
-          });
-
-          if (validRows.length === 0) {
-            throw new Error('لم يتم العثور على أي بيانات صالحة للاستيراد\n' + errors.join('\n'));
           }
 
-          // Import valid rows to Supabase
-          const { data: result, error } = await supabase
-            .from(config.tableName)
-            .insert(validRows)
-            .select();
-
-          if (error) throw error;
-
-          resolve({
-            imported: validRows.length,
-            message: validRows.length === jsonData.length
-              ? `تم استيراد ${validRows.length} من المعاملات بنجاح`
-              : `تم استيراد ${validRows.length} من المعاملات بنجاح\nتم تخطي ${jsonData.length - validRows.length} صفوف بسبب الأخطاء:\n${errors.join('\n')}`
-          });
-        } else {
-          // For other tables, proceed with normal import
-          const mappedData = await Promise.all(jsonData.map(async row => {
-            const newRow: { [key: string]: any } = {
-              created_at: new Date().toISOString()
-            };
-            for (const [sourceField, targetField] of Object.entries(config.mappings)) {
-              if (row[sourceField] !== undefined) {
-                if (targetField === 'id') {
-                  // Convert the كود value to a UUID format if it's not already
-                  const idValue = row[sourceField].toString();
-                  try {
-                    // Check if it's already a valid UUID
-                    if (/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(idValue)) {
-                      newRow[targetField] = idValue;
-                    } else {
-                      // Generate a deterministic UUID from the ID value
-                      const namespace = '6ba7b810-9dad-11d1-80b4-00c04fd430c8'; // A fixed namespace UUID
-                      const { data: uuidData } = await supabase.rpc('gen_random_uuid');
-                      newRow[targetField] = uuidData;
-                    }
-                  } catch {
-                    // If there's any error, generate a random UUID
-                    const { data: uuidData } = await supabase.rpc('gen_random_uuid');
-                    newRow[targetField] = uuidData;
-                  }
-                } else {
-                  newRow[targetField] = row[sourceField];
-                }
-              }
+          if (!rowHasError) {
+            // Add default values and derived fields
+            if (config.tableName === 'transactions') {
+                newRow.amount = (newRow.cost_price || 0) + (newRow.extra_price || 0);
+                newRow.remaining_balance = newRow.amount;
+                newRow.status = 'active';
             }
-            return newRow;
-          }));
+            validRows.push(newRow);
+          }
+        }
 
-          // Import to Supabase
-          const { data: result, error } = await supabase
-            .from(config.tableName)
-            .insert(mappedData)
-            .select();
-
-          if (error) throw error;
-
-          resolve({
-            imported: mappedData.length,
-            message: `تم استيراد ${mappedData.length} من السجلات بنجاح`
+        if (errors.length > 0) {
+          // If there are errors, do not import anything.
+          // Resolve with error details for reporting.
+          return resolve({
+            imported: 0,
+            errors: errors,
+            message: `فشل الاستيراد. تم العثور على ${errors.length} أخطاء.`
           });
         }
+
+        if (validRows.length === 0) {
+          return resolve({ imported: 0, errors: [], message: 'لا توجد بيانات صالحة للاستيراد.' });
+        }
+
+        // Perform the insert operation
+        const { error: insertError } = await supabase.from(config.tableName).insert(validRows);
+
+        if (insertError) {
+          // If Supabase returns an error, report it
+          reject(new Error(`خطأ في قاعدة البيانات: ${insertError.message}`));
+        } else {
+          resolve({
+            imported: validRows.length,
+            errors: [],
+            message: `تم استيراد ${validRows.length} سجلات بنجاح.`,
+          });
+        }
+
       } catch (error: any) {
         reject(error);
       }
