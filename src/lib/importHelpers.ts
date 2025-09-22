@@ -120,9 +120,12 @@ export const importData = async (
 
           // Collect valid rows and errors
           const validRows: any[] = [];
-          const errors: string[] = [];
+          const errors: { row: number, name: string, error: string }[] = [];
 
           jsonData.forEach((row, index) => {
+            const rowNumber = index + 2; // Spreadsheets are 1-indexed and have a header
+            const customerName = row[Object.keys(config.mappings).find(k => config.mappings[k] === 'customer_id') || ''] || 'Unknown';
+
             try {
               const newRow: { [key: string]: any } = {
                 created_at: new Date().toISOString(),
@@ -162,8 +165,8 @@ export const importData = async (
 
                     case 'number_of_installments':
                       const installments = row[sourceField] ? Number(row[sourceField]) : 0;
-                      if (!Number.isInteger(installments) || installments < 0) {
-                        throw new Error('عدد الدفعات يجب أن يكون رقماً صحيحاً');
+                      if (!Number.isInteger(installments) || installments <= 0) {
+                        throw new Error('عدد الدفعات يجب أن يكون رقماً صحيحاً وأكبر من صفر');
                       }
                       newRow[targetField] = installments;
                       break;
@@ -180,7 +183,7 @@ export const importData = async (
                       newRow[targetField] = row[sourceField];
                   }
                 } catch (fieldError: any) {
-                  errors.push(`خطأ في الصف ${index + 2}: ${fieldError.message}`);
+                  errors.push({ row: rowNumber, name: customerName, error: fieldError.message });
                   isValid = false;
                   break;
                 }
@@ -193,12 +196,13 @@ export const importData = async (
                 validRows.push(newRow);
               }
             } catch (rowError: any) {
-              errors.push(`خطأ في الصف ${index + 2}: ${rowError.message}`);
+              errors.push({ row: rowNumber, name: customerName, error: rowError.message });
             }
           });
 
           if (validRows.length === 0) {
-            throw new Error('لم يتم العثور على أي بيانات صالحة للاستيراد\n' + errors.join('\n'));
+            const errorSummary = errors.map(e => `Row ${e.row} (Customer: ${e.name}): ${e.error}`).join('\n');
+            throw new Error('لم يتم العثور على أي بيانات صالحة للاستيراد\n' + errorSummary);
           }
 
           // Import valid rows to Supabase
@@ -209,11 +213,12 @@ export const importData = async (
 
           if (error) throw error;
 
+          const errorSummary = errors.map(e => `Row ${e.row} (Customer: ${e.name}): ${e.error}`).join('\n');
           resolve({
             imported: validRows.length,
             message: validRows.length === jsonData.length
               ? `تم استيراد ${validRows.length} من المعاملات بنجاح`
-              : `تم استيراد ${validRows.length} من المعاملات بنجاح\nتم تخطي ${jsonData.length - validRows.length} صفوف بسبب الأخطاء:\n${errors.join('\n')}`
+              : `تم استيراد ${validRows.length} من المعاملات بنجاح\nتم تخطي ${jsonData.length - validRows.length} صفوف بسبب الأخطاء:\n${errorSummary}`
           });
         } else {
           // For other tables, proceed with normal import
