@@ -1,4 +1,4 @@
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from './supabaseClient';
 import type { Payment, Transaction } from './types';
 
 // Calculate risk score for a customer based on their history

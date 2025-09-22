@@ -1,5 +1,5 @@
 import * as XLSX from 'xlsx';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/lib/supabaseClient';
 
 export type TableName = keyof typeof TABLE_CONFIGS;
 
@@ -29,7 +29,7 @@ export const readExcelFile = (file: File): Promise<{
             raw: false,
             defval: '',
             blankrows: false
-          }).slice(0, 5); // Preview first 5 rows
+          }).slice(0, 5);
         });
 
         resolve({ sheets, preview });
@@ -148,7 +148,7 @@ export const importData = async (
                     case 'cost_price':
                     case 'extra_price':
                     case 'installment_amount':
-                      const amount = Number(row[sourceField]);
+                      const amount = Number(row[sourceField] || 0);
                       if (isNaN(amount) || amount < 0) {
                         throw new Error(`قيمة غير صالحة في حقل ${targetField}`);
                       }
@@ -210,7 +210,6 @@ export const importData = async (
               : `تم استيراد ${validRows.length} من المعاملات بنجاح\nتم تخطي ${errors.length} صفوف بسبب الأخطاء:\n${errorSummary}`
           });
         } else {
-          // For other tables...
           const mappedData = await Promise.all(jsonData.map(async row => {
             const newRow: { [key: string]: any } = {
               created_at: new Date().toISOString()

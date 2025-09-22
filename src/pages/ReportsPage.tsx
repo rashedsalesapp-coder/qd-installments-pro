@@ -4,7 +4,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { Transaction, ExportRow } from '@/lib/types';
 import * as XLSX from 'xlsx';
 import { format, setDate, addMonths } from 'date-fns';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/lib/supabaseClient';
 
 // --- Supabase API Function ---
 const getReportableTransactions = async (): Promise<Transaction[]> => {

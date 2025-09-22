@@ -1,4 +1,4 @@
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from './supabaseClient';
 import { Transaction, Customer } from './types';
 
 interface TransactionImportRow {
