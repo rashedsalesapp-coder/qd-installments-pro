@@ -1,23 +1,22 @@
 -- =================================================================
--- MASTER DATABASE FIX SCRIPT (v3) - FINAL
--- INSTRUCTIONS: Please copy the entire content of this file and
--- run it in your Supabase project's SQL Editor. This script
--- uses a more compatible syntax to avoid errors and includes all fixes.
+-- CONSOLIDATED DATABASE FIXES
+-- This single migration applies all necessary fixes to the database
+-- schema, RLS policies, and functions to resolve issues with
+-- data import, data visibility, and dashboard functionality.
 -- =================================================================
 
 -- Part 1: Fix Incompatible Data Types in AI Tables
--- This is the root cause of the foreign key error.
+-- Alters necessary columns to TEXT to match customers.id and allow foreign keys.
 -- =================================================================
 ALTER TABLE public.payment_predictions
   ALTER COLUMN customer_id TYPE text USING customer_id::text;
-ALTER TABLE public.payment_predictions
-  ALTER COLUMN transaction_id TYPE text USING transaction_id::text;
 
 ALTER TABLE public.customer_risk_scores
   ALTER COLUMN customer_id TYPE text USING customer_id::text;
 
 
--- Part 2: Add Foreign Keys to AI Tables (will now succeed)
+-- Part 2: Add Foreign Keys to AI Tables
+-- Adds the foreign key constraints now that data types are compatible.
 -- =================================================================
 ALTER TABLE public.payment_predictions DROP CONSTRAINT IF EXISTS payment_predictions_customer_id_fkey;
 ALTER TABLE public.payment_predictions ADD CONSTRAINT payment_predictions_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES public.customers(id) ON DELETE CASCADE;
@@ -27,7 +26,8 @@ ALTER TABLE public.customer_risk_scores DROP CONSTRAINT IF EXISTS customer_risk_
 ALTER TABLE public.customer_risk_scores ADD CONSTRAINT customer_risk_scores_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES public.customers(id) ON DELETE CASCADE;
 
 
--- Part 3: Fix Row Level Security (RLS) Policies (to make data visible)
+-- Part 3: Fix Row Level Security (RLS) Policies
+-- Makes data visible to all authenticated users.
 -- =================================================================
 ALTER TABLE public.customers ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Customers: Allow SELECT for all users" ON public.customers;
@@ -60,7 +60,8 @@ DROP POLICY IF EXISTS "Payments: Allow DELETE for admins" ON public.payments;
 CREATE POLICY "Payments: Allow DELETE for admins" ON public.payments FOR DELETE USING (public.has_role(auth.uid(), 'admin'));
 
 
--- Part 4: Relax Transaction Constraints (to allow importing old data)
+-- Part 4: Relax Transaction Constraints
+-- Allows importing historical data with zero or null values.
 -- =================================================================
 ALTER TABLE public.transactions DROP CONSTRAINT IF EXISTS positive_amounts;
 ALTER TABLE public.transactions DROP CONSTRAINT IF EXISTS valid_installments;
@@ -71,13 +72,15 @@ ALTER TABLE public.transactions ADD CONSTRAINT transactions_non_negative_amounts
 ALTER TABLE public.transactions ADD CONSTRAINT transactions_non_negative_installments_check CHECK (number_of_installments >= 0);
 
 
--- Part 5: Alter Payments Table (to allow importing old payments)
+-- Part 5: Alter Payments Table
+-- Allows importing historical payments where balance columns are not known.
 -- =================================================================
 ALTER TABLE public.payments ALTER COLUMN balance_before DROP NOT NULL;
 ALTER TABLE public.payments ALTER COLUMN balance_after DROP NOT NULL;
 
 
--- Part 6: Update Dashboard Function (to fix revenue calculation)
+-- Part 6: Update Dashboard Function
+-- Fixes revenue calculation and column name casing.
 -- =================================================================
 CREATE OR REPLACE FUNCTION public.get_dashboard_stats()
  RETURNS json LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $function$
@@ -88,18 +91,19 @@ CREATE OR REPLACE FUNCTION public.get_dashboard_stats()
      END IF;
      SELECT json_build_object(
          'totalCustomers', (SELECT COUNT(*) FROM public.customers),
-         'totalActiveTransactions', (SELECT COUNT(*) FROM public.transactions WHERE "remainingBalance" > 0),
+         'totalActiveTransactions', (SELECT COUNT(*) FROM public.transactions WHERE remaining_balance > 0),
          'totalRevenue', (SELECT COALESCE(SUM(amount), 0) FROM public.payments),
-         'totalOutstanding', (SELECT COALESCE(SUM("remainingBalance"), 0) FROM public.transactions),
-         'totalOverdue', (SELECT COALESCE(SUM("overdueAmount"), 0) FROM public.transactions),
-         'overdueTransactions', (SELECT COUNT(*) FROM public.transactions WHERE "overdueAmount" > 0)
+         'totalOutstanding', (SELECT COALESCE(SUM(remaining_balance), 0) FROM public.transactions),
+         'totalOverdue', (SELECT COALESCE(SUM(overdue_amount), 0) FROM public.transactions),
+         'overdueTransactions', (SELECT COUNT(*) FROM public.transactions WHERE overdue_amount > 0)
      ) INTO stats;
      RETURN stats;
  END;
  $function$;
 
 
--- Part 7: Relax Payment Constraint (to allow importing zero-value payments)
+-- Part 7: Relax Payment Constraint
+-- Allows importing historical payments with a zero value.
 -- =================================================================
 ALTER TABLE public.payments DROP CONSTRAINT IF EXISTS positive_payment;
 ALTER TABLE public.payments ADD CONSTRAINT non_negative_payment CHECK (amount >= 0);

@@ -40,7 +40,7 @@ const PaymentList = ({ payments, onDeletePayment }: PaymentListProps) => {
                   <Badge variant="outline">{payment.transaction?.sequence_number || 'N/A'}</Badge>
                 </TableCell>
                 <TableCell className="text-green-600 font-medium">{formatCurrency(payment.amount)}</TableCell>
-                <TableCell>{formatCurrency(payment.balance_after)}</TableCell>
+                <TableCell>{payment.balance_after != null ? formatCurrency(payment.balance_after) : '---'}</TableCell>
                 <TableCell>{formatArabicDate(new Date(payment.payment_date))}</TableCell>
                 <TableCell>
                   {hasRole('admin') && (
