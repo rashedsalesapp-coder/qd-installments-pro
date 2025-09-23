@@ -185,6 +185,8 @@ export type Database = {
           legal_case_details: string | null
           notes: string | null
           number_of_installments: number
+          overdue_amount: number | null
+          overdue_installments: number | null
           profit: number | null
           remaining_balance: number
           start_date: string
@@ -201,6 +203,8 @@ export type Database = {
           legal_case_details?: string | null
           notes?: string | null
           number_of_installments: number
+          overdue_amount?: number | null
+          overdue_installments?: number | null
           profit?: number | null
           remaining_balance: number
           start_date: string
@@ -217,6 +221,8 @@ export type Database = {
           legal_case_details?: string | null
           notes?: string | null
           number_of_installments?: number
+          overdue_amount?: number | null
+          overdue_installments?: number | null
           profit?: number | null
           remaining_balance?: number
           start_date?: string
